@@ -862,7 +862,6 @@ ul {
     color: #8b9ab5;
 }
 
-.crp-forward-bar {
-    background-color: #1e1a2b;
-    border-color: #2c2640;
+.fwd-dialogs--item:hover {
+    background-color: rgba(122, 156, 196, .15);
 }

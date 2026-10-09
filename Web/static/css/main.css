@@ -1713,13 +1713,32 @@ table.User {
 }
 
 /* выбор диалога для пересылки */
-.crp-forward-bar {
+.fwd-dialogs {
+    max-height: 300px;
+    overflow-y: auto;
+    margin: -5px 0;
+}
+
+.fwd-dialogs--item {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 8px 10px;
-    border-bottom: 1px solid #d6d6d6;
-    background-color: #f9f9f9;
+    gap: 10px;
+    padding: 6px;
+    border-radius: 3px;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.fwd-dialogs--item:hover {
+    background-color: rgba(81, 129, 184, .1);
+    text-decoration: none;
+}
+
+.fwd-dialogs--item img {
+    width: 32px;
+    height: 32px;
+    border-radius: 3px;
+    object-fit: cover;
 }
 
 .msg-check {

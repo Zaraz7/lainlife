@@ -305,6 +305,9 @@
             forward: {tr("messenger_forward")},
             delete:  {tr("messenger_delete")},
             noText:  {tr("messenger_no_text")},
+            saved:   {tr("saved_messages")},
+            forwardTo: {tr("messenger_forward_to")},
+            noDialogs: {tr("no_messages")},
             fwdCount: {tr("messenger_forwarded_count", "%COUNT%")},
         };
 
@@ -724,25 +727,54 @@
                 }
             }
 
-            // как в openvk: сначала выбираем диалог, затем сообщения прикрепляются к полю ввода
-            forwardMessages(msgIds) {
+            // выбор диалога в модальном окне, затем сообщения прикрепляются к полю ввода
+            async forwardMessages(msgIds) {
                 const msgs = window.messages()
                     .filter(m => msgIds.includes(m.uuid))
                     .sort((a, b) => a.uuid - b.uuid)
                     .map(m => ({ uuid: m.uuid, name: m.sender.name, text: window.plainText(m.text) }));
                 if(msgs.length === 0) return;
 
+                let dialogs = [];
                 try {
-                    sessionStorage.setItem("im.forward", JSON.stringify(msgs));
+                    dialogs = await (await fetch("/im/api/dialogs.json")).json();
                 } catch(e) {
                     return fastError(tr("messages_error_1"));
                 }
 
-                window.selectedMsgs.removeAll();
-                location.assign("/im?forward=1");
+                const myId  = {$thisUser->getId()};
+                const items = dialogs.map(d => `
+                    <a class="fwd-dialogs--item" data-id="${ d.id }">
+                        <img src="${ escapeHtml(d.avatar) }" alt="" />
+                        <span>${ escapeHtml(d.id === myId ? window.MSG_STR.saved : d.name) }</span>
+                    </a>
+                `).join("");
+
+                const body = `<div class="fwd-dialogs">${ items || window.MSG_STR.noDialogs }</div>`;
+                const box  = MessageBox(window.MSG_STR.forwardTo, body, [{tr("cancel")}], [Function.noop], true);
+
+                u(box.getNode()).find(".fwd-dialogs--item").on("click", e => {
+                    const id = Number(e.currentTarget.dataset.id);
+                    box.close();
+                    window.selectedMsgs.removeAll();
+
+                    if(id === {$correspondent->getId()}) {
+                        window.forwardMsgs(msgs);
+                        u("textarea[name=message]").nodes[0]?.focus();
+                        return;
+                    }
+
+                    try {
+                        sessionStorage.setItem("im.forward", JSON.stringify(msgs));
+                    } catch(err) {
+                        return fastError(tr("messages_error_1"));
+                    }
+
+                    location.assign(`/im?sel=${ id }&forward=1`);
+                });
             }
 
-            // пересылка, выбранная на странице диалогов
+            // пересылка, выбранная в другом диалоге
             takeForward() {
                 const params = new URLSearchParams(location.search);
                 if(!params.has("forward")) return;
