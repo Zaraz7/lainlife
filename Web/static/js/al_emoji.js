@@ -51,13 +51,8 @@
 
     const KOLOBOK_RE = /^:([A-Za-z0-9_-]+):$/;
 
-    // то же имя файла, что строит TRichText::formatEmojis
-    const twemojiUrl = emoji => {
-        let points = [...emoji].map(c => c.codePointAt(0));
-        if(!points.includes(0x200D)) points = points.filter(p => p !== 0xFE0F);
-
-        return `https://abs.twimg.com/emoji/v2/72x72/${points.map(p => p.toString(16)).join("-")}.png`;
-    };
+    // тот же класс спрайта ВК, что строит TRichText::formatEmojis
+    const emojiSpan = emoji => emoji_span(emoji);
 
     const kolobokUrl = code => `/assets/packages/static/openvk/img/kolobki/${code}.gif`;
 
@@ -89,13 +84,13 @@
         } catch(e) {}
     };
 
-    // картинки грузятся, только когда до них доскроллили (эмодзи почти две тысячи)
+    // колобки грузятся, только когда до них доскроллили
     const itemHTML = value => {
         const kolobok = value.match(KOLOBOK_RE);
         if(kolobok)
             return `<a class="emoji-picker--item kolobok" data-value="${value}" title="${value}"><img data-src="${kolobokUrl(kolobok[1])}" alt="${value}" /></a>`;
 
-        return `<a class="emoji-picker--item" data-value="${value}"><img data-src="${twemojiUrl(value)}" alt="${value}" /></a>`;
+        return `<a class="emoji-picker--item" data-value="${value}">${emojiSpan(value)}</a>`;
     };
 
     const sectionHTML = (id, title, items) => `
@@ -534,7 +529,7 @@
                 <div class="emoji-picker--sets">
                     <a data-section="recent" title="${escapeHtml(tr("emoji_picker_recent"))}"><span class="emoji-picker--icon-recent"></span></a>
                     <div class="emoji-picker--set">
-                        ${sets.map(s => `<a data-section="${s.id}" title="${escapeHtml(tr(`emoji_category_${s.id}`))}"><img src="${twemojiUrl(CATEGORY_ICONS[s.id])}" alt="" /></a>`).join("")}
+                        ${sets.map(s => `<a data-section="${s.id}" title="${escapeHtml(tr(`emoji_category_${s.id}`))}">${emojiSpan(CATEGORY_ICONS[s.id])}</a>`).join("")}
                     </div>
                     <a data-section="kolobki" title="${escapeHtml(tr("emoji_picker_kolobki"))}"><img src="${kolobokUrl("smile")}" alt="" /></a>
                 </div>

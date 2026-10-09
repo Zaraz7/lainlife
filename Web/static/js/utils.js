@@ -378,3 +378,17 @@ function expandText(item)
         item.textContent = tr("show_more")
     }
 }
+// смайлики ВК: класс спрайта - UTF-16 последовательность, FE0F в ней только у склеек с ZWJ
+function emoji_span(emoji) {
+    let units = emoji.split("").map(c => c.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0"));
+    if(!units.includes("200D")) units = units.filter(u => u !== "FE0F");
+
+    return `<span class="emoji emoji_${units.join("")}">${emoji}</span>`;
+}
+
+const EMOJI_SEQUENCE_RE = /(?:\p{Regional_Indicator}{2}|[#*0-9]️?⃣|[\p{Extended_Pictographic}\p{Emoji_Presentation}](?:️|\p{Emoji_Modifier})?(?:‍[\p{Extended_Pictographic}\p{Emoji_Presentation}](?:️|\p{Emoji_Modifier})?)*)/gu;
+
+// уже экранированный текст с эмодзи, заменёнными на спрайт
+function encode_emojis(html) {
+    return (html ?? "").replace(EMOJI_SEQUENCE_RE, emoji_span);
+}

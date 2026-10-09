@@ -1736,6 +1736,11 @@ table.User {
     opacity: 1;
 }
 
+/* смайлики ВК в тексте */
+.emoji {
+    cursor: inherit;
+}
+
 /* меню вложений и информация о собеседнике */
 .im-peer-dialog .ovk-diag-body {
     padding: 0;
@@ -5561,17 +5566,9 @@ hr {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
     cursor: pointer;
-}
-
-.emoji-picker--item img {
-    width: 26px;
-    height: 26px;
-    overflow: hidden;
-    font-size: 20px;
-    line-height: 26px;
 }
 
 .emoji-picker--item.kolobok {
@@ -5633,6 +5630,7 @@ hr {
     background-color: #dfe6ee;
 }
 
+.emoji-picker--sets .emoji,
 .emoji-picker--sets img {
     max-width: 20px;
     max-height: 24px;
@@ -5640,6 +5638,8 @@ hr {
     opacity: 0.6;
 }
 
+.emoji-picker--sets a:hover .emoji,
+.emoji-picker--sets a.active .emoji,
 .emoji-picker--sets a:hover img,
 .emoji-picker--sets a.active img {
     filter: none;

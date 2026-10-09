@@ -18,18 +18,13 @@ trait TRichText
 
         $replacements = [];
         foreach (\Emoji\detect_emoji($text) as $emoji) {
-            // twemoji называет файл по всей последовательности (флаги, склейки вроде 👨‍💻),
-            // а FE0F выкидывает, если в ней нет ZWJ - раньше брался только первый код
-            $points = strtolower($emoji["hex_str"]);
-            if (!str_contains($points, "200d")) {
-                $points = str_replace("-fe0f", "", $points);
+            // класс спрайта ВК - UTF-16 последовательность, FE0F в ней только у склеек с ZWJ
+            $units = str_split(strtoupper(bin2hex(mb_convert_encoding($emoji["emoji"], "UTF-16BE", "UTF-8"))), 4);
+            if (!in_array("200D", $units, true)) {
+                $units = array_filter($units, fn($u) => $u !== "FE0F");
             }
 
-            $image  = "https://abs.twimg.com/emoji/v2/72x72/$points.png";
-            $image  = "<img src='$image' alt='$emoji[emoji]' ";
-            $image .= "style='max-height:20px; padding-left: 2pt; padding-right: 2pt; vertical-align: middle;' />";
-
-            $replacements[$emoji["emoji"]] = $image;
+            $replacements[$emoji["emoji"]] = "<span class='emoji emoji_" . implode("", $units) . "'>$emoji[emoji]</span>";
         }
 
         # OVK-113: strtr заменяет за один проход и сначала длинные совпадения,
