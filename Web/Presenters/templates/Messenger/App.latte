@@ -46,7 +46,7 @@
                 <!-- ko if: window.isMsgNewDay($index()) -->
                 <div class="messenger-app--messages-day-time"><b data-bind="text: window.msgDay(timing.ts)"></b></div>
                 <!-- /ko -->
-                <div class="messenger-app--messages---message" data-bind="attr: { 'data-uuid': $data.uuid }, css: { unread: !read, grouped: window.isMsgGrouped($index()), selected: $root.selectedMsgs.indexOf($data.uuid) !== -1 }">
+                <div class="messenger-app--messages---message" data-bind="attr: { 'data-uuid': $data.uuid }, css: { unread: !read, grouped: window.isMsgGrouped($index()), selected: $root.selectedMsgs.indexOf($data.uuid) !== -1, 'msg-replying-to': $root.replyTo() && $root.replyTo().uuid === $data.uuid }">
                     <div class="msg-check" data-bind="visible: $data.uuid > 0"></div>
                     <img class="ava" data-bind="attr: { src: sender.avatar, alt: sender.name }" />
                     <div class="_content">
@@ -55,102 +55,27 @@
                             <strong data-bind="text: sender.name"></strong>
                         </a>
                         <!-- /ko -->
-                        <span class="text" data-bind="html: text"></span>
-                        <!-- ko if: typeof forwarded !== 'undefined' && forwarded !== null -->
-                        <div class="msg-forwarded" style="border-left: 3px solid #3c3949; margin: 5px 0; padding: 5px 8px; background: rgba(60,57,73, 0.1);">
-                            
-                            <img data-bind="attr: { src: forwarded.sender.avatar }" style="width:20px; height:20px; vertical-align:middle;" />
-                            <strong data-bind="text: forwarded.sender.name" style="font-size:11px;"></strong>
-                            <div data-bind="html: forwarded.text" style="font-size:11px; margin-top:3px;"></div>
+                        <!-- ko if: $data.reply -->
+                        <div class="reply-msg-container" data-bind="click: (d, e) => window.Msg.onReplyClick(reply, e), clickBubble: false">
+                            <div class="reply-msg-head">
+                                <a class="reply-avatar-link" data-bind="attr: { href: reply.sender.link }"><img class="reply-avatar" data-bind="attr: { src: reply.sender.avatar, alt: reply.sender.name }" /></a>
+                                <a class="reply-author-name" data-bind="attr: { href: reply.sender.link }"><strong data-bind="text: reply.sender.name"></strong></a>
+                                <span class="reply-date" data-bind="text: window.msgFullDate(reply.ts)"></span>
+                            </div>
+                            <!-- ko if: reply.deleted -->
+                            <div class="reply-text reply-no-text">{_messenger_message_deleted}</div>
+                            <!-- /ko -->
+                            <!-- ko ifnot: reply.deleted -->
+                            <div class="reply-text" data-bind="html: reply.text || window.MSG_STR.noText, css: { 'reply-no-text': !reply.text }"></div>
+                            <!-- /ko -->
                         </div>
                         <!-- /ko -->
-                        <div data-bind="foreach: attachments" class="attachments">
-                            <div class="msg-attach-j">
-                                <div data-bind="if: type === 'sticker'" class="msg-attach-j-sticker">
-                                    <a class="msg-sticker" data-bind="attr: { 'data-pack': sticker.pack, title: sticker.emoji }"><img data-bind="attr: { src: sticker.url, alt: sticker.emoji }" /></a>
-                                </div>
-                                <div data-bind="if: type === 'photo'" class="msg-attach-j-photo">
-                                    <a data-bind="attr: { href: link, 'data-photo-id': id }" class="photoMessengerOpen">
-                                        <img data-bind="attr: { src: photo.url, alt: photo.caption }" />
-                                    </a>
-                                </div>
-                                <div data-bind="if: type === 'video'" class="msg-attach-j-video">
-                                    <div style="width: 100%; max-width: 400px; background: #000;">
-                                        <div class="bsdn media" data-bind="attr: { 'data-name': video.name, 'data-author': video.author }" style="width: 100%;">
-                                            <video class="media" data-bind="attr: { src: video.url }" style="width: 100%; display: block;"></video>
-                                        </div>
-                                    </div>
-                                    <div class="video-wowzer" style="margin-top: 8px;">
-                                        <div class="small-video-ico"></div>
-                                        <a data-bind="attr: { href: link, 'data-video-id': id }, text: video.name" class="videoMessengerOpen" style="display: inline-block;"></a>
-                                        <span class="video-wowzer-length" data-bind="text: '(' + video.formatted_length + ')'"></span>
-                                    </div>
-                                </div>
-                                <div data-bind="if: type === 'audio'" class="msg-attach-j-audio">
-                                    <div style="width:100%;">
-                                        <div data-bind="html: html"></div>
-                                    </div>
-                                </div>
-                                <div data-bind="if: type === 'note'" class="msg-attach-j-note">
-                                    <div data-bind="attr: { 'data-att-type': 'note', 'data-att-id': id }">
-                                        <div class="attachment_note">
-                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 10"><polygon points="0 0 0 10 8 10 8 4 4 4 4 0 0 0"/><polygon points="5 0 5 3 8 3 5 0"/></svg>
-                                            <div class='attachment_note_content' style="width: 30%">
-                                                <span class="attachment_note_text">{_note}</span>
-                                                <span class="attachment_note_name" style="white-space: nowrap">
-                                                    <a href="#" data-bind="click: function() { showArticle(id); return false; }, text: note.name"></a>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div data-bind="if: type === 'doc'" class="msg-attach-j-doc attachment">
-                                    <div style="width:100%;">
-                                        <a data-bind="attr: { href: link, 'data-att-type': 'doc', 'data-att-id': id }" style="display:none" class="docGalleryItem viewerOpener"></a>
-                                        
-                                        <a class="docMainItem viewerOpener docGalleryItem" 
-                                           data-bind="visible: document.preview && document.preview.medium, attr: { href: link, 'data-id': id }">
-                                            
-                                            <img class="docGalleryItem_main_preview" loading="lazy" 
-                                                 data-bind="attr: { src: (document.preview && document.preview.medium) ? document.preview.medium : '', alt: document.name }">
-                                            
-                                            <div class="doc_top_panel doc_shown_by_hover">
-                                                <div class="doc_volume_action" id="add_icon"></div>
-                                            </div>
-
-                                            <div class="doc_bottom_panel doc_shown_by_hover doc_content info_shown">
-                                                <span class="doc_bottom_panel_name noOverflow doc_name" data-bind="text: document.name"></span>
-                                                <span class="doc_bottom_panel_size" data-bind="text: document.size_str"></span>
-                                            </div>
-                                        </a>
-
-                                        <div class="docMainItem docListViewItem" 
-                                             data-bind="visible: !(document.preview && document.preview.medium), attr: { 'data-id': id }">
-                                            
-                                            <a class="viewerOpener" data-bind="attr: { href: link }" style="margin-left: 10%;">
-                                                <img class="doc_icon" data-bind="visible: document.preview && document.preview.tiny, attr: { src: (document.preview && document.preview.tiny) ? document.preview.tiny : '' }">
-                                                <div class="doc_icon no_image" data-bind="visible: !document.preview">
-                                                    <span data-bind="text: document.ext" style="justify-content: center; align-items: center; display:flex;"></span>
-                                                </div>
-                                            </a>
-
-                                            <div class="doc_content noOverflow">
-                                                <a class="viewerOpener noOverflow" data-bind="attr: { href: link }">
-                                                    <b class="noOverflow doc_name" data-bind="text: document.name"></b>
-                                                </a>
-                                                <div class="doc_content_info">
-                                                    <span data-bind="text: document.pub_time" style="display:inline;"></span>, <span data-bind="text: document.size_str" style="display:inline;"></span>
-                                                </div>
-                                            </div>
-
-                                            <div class="doc_volume">
-                                                <div id="add_icon"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <span class="text" data-bind="html: text"></span>
+                        <!-- ko template: 'msg-attachments-tpl' --><!-- /ko -->
+                        <!-- ko if: $data.fwd && fwd.length -->
+                        <div class="fwd-messages-count" data-bind="text: window.fwdCountLabel(fwd.length)"></div>
+                        <div class="fwd-messages-container" data-bind="template: { name: 'msg-fwd-tpl', foreach: fwd }"></div>
+                        <!-- /ko -->
                     </div>
                     <div class="msg-tools">
                         <!-- ko if: $data.uuid > 0 -->
@@ -180,7 +105,7 @@
             <div class="post-horizontal" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
             <div class="post-vertical" style="margin-top: 8px; display: flex; flex-direction: column; gap: 8px;"></div>
         </div>
-        <div class="messenger-app--input">
+        <div class="messenger-app--input" data-bind="css: { 'with-reply': replyTo() || forwardMsgs().length }">
             {if $correspondent->getId() === $thisUser->getId() || $correspondent->getPrivacyPermission('messages.write', $thisUser)}
                 <img class="ava" src="{$thisUser->getAvatarUrl('miniscule')}" alt="{$thisUser->getCanonicalName()}" />
                 <div class="messenger-app--input---messagebox">
@@ -188,6 +113,27 @@
                         <form action="/" method="post" enctype="multipart/form-data" style="margin:0;">
                             <a class="js-emoji-picker emoji-btn" data-tabs="emoji stickers gifs" title="{_smiles}"></a>
                             <textarea id="wall-post-input-messenger" placeholder="{_enter_message}" name="message" style="width: 100%;resize: none;" class="small-textarea expanded-textarea" autocomplete="off" data-bind="value: messageContent, event: { keydown: onTextareaKeyPress, input: onTextareaInput }"></textarea>
+
+                            <!-- ko if: replyTo() -->
+                            <div class="input-reply" data-bind="click: () => window.Msg.goToMessage(replyTo().uuid)">
+                                <div class="input-reply-content">
+                                    <div class="input-reply-title">{_messenger_reply_to}</div>
+                                    <div class="input-reply-text"><b data-bind="text: replyTo().sender.name + ':'"></b> <span data-bind="text: window.plainText(replyTo().text) || window.MSG_STR.noText"></span></div>
+                                </div>
+                                <a class="input-close" title="{_cancel}" data-bind="click: () => window.Msg.clearReply(), clickBubble: false">✕</a>
+                            </div>
+                            <!-- /ko -->
+                            <!-- ko if: forwardMsgs().length -->
+                            <div class="input-reply">
+                                <div class="input-reply-content">
+                                    <div class="input-reply-title" data-bind="text: window.fwdCountLabel(forwardMsgs().length)"></div>
+                                    <div class="input-reply-text" data-bind="foreach: forwardMsgs()">
+                                        <div class="input-fwd-item"><b data-bind="text: name + ':'"></b> <span data-bind="text: text || window.MSG_STR.noText"></span></div>
+                                    </div>
+                                </div>
+                                <a class="input-close" title="{_cancel}" data-bind="click: () => window.Msg.clearForward(), clickBubble: false">✕</a>
+                            </div>
+                            <!-- /ko -->
 
                             <div class="post-buttons" style="display: block; margin-top:-3px;">
                                 <div class="post-horizontal" style="display: none;"></div>
@@ -201,13 +147,6 @@
                                 <input type="hidden" name="smiles" value="" autocomplete="off" />
                                 <input type="hidden" name="type" value="1" autocomplete="off" />
                                 <input type="hidden" name="hash" value="{$csrfToken}" />
-
-				<div id="reply-preview" style="display:none; padding:5px 8px; margin-bottom:5px; border-left:3px solid #7a9cc4; background:rgba(122,156,196,0.1); border-radius:3px; position:relative;">
-				    <div style="font-size:11px; color:#999;">Ответ на сообщение:</div>
-				    <strong id="reply-sender-name" style="font-size:12px;"></strong>
-				    <div id="reply-text" style="font-size:12px; color:#ccc; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
-				    <a href="#" onclick="window.Msg.clearReply(); return false;" style="position:absolute; right:5px; top:5px; font-size:14px; color:#999;">✕</a>
-				</div>
 
                                 <button class="button" data-bind="click: sendMessage">{_send}</button>
 
@@ -250,6 +189,113 @@
         </div>
     </div>
     
+    <template id="msg-attachments-tpl">
+        <div data-bind="foreach: attachments" class="attachments">
+            <div class="msg-attach-j">
+                <div data-bind="if: type === 'sticker'" class="msg-attach-j-sticker">
+                    <a class="msg-sticker" data-bind="attr: { 'data-pack': sticker.pack, title: sticker.emoji }"><img data-bind="attr: { src: sticker.url, alt: sticker.emoji }" /></a>
+                </div>
+                <div data-bind="if: type === 'photo'" class="msg-attach-j-photo">
+                    <a data-bind="attr: { href: link, 'data-photo-id': id }" class="photoMessengerOpen">
+                        <img data-bind="attr: { src: photo.url, alt: photo.caption }" />
+                    </a>
+                </div>
+                <div data-bind="if: type === 'video'" class="msg-attach-j-video">
+                    <div style="width: 100%; max-width: 400px; background: #000;">
+                        <div class="bsdn media" data-bind="attr: { 'data-name': video.name, 'data-author': video.author }" style="width: 100%;">
+                            <video class="media" data-bind="attr: { src: video.url }" style="width: 100%; display: block;"></video>
+                        </div>
+                    </div>
+                    <div class="video-wowzer" style="margin-top: 8px;">
+                        <div class="small-video-ico"></div>
+                        <a data-bind="attr: { href: link, 'data-video-id': id }, text: video.name" class="videoMessengerOpen" style="display: inline-block;"></a>
+                        <span class="video-wowzer-length" data-bind="text: '(' + video.formatted_length + ')'"></span>
+                    </div>
+                </div>
+                <div data-bind="if: type === 'audio'" class="msg-attach-j-audio">
+                    <div style="width:100%;">
+                        <div data-bind="html: html"></div>
+                    </div>
+                </div>
+                <div data-bind="if: type === 'note'" class="msg-attach-j-note">
+                    <div data-bind="attr: { 'data-att-type': 'note', 'data-att-id': id }">
+                        <div class="attachment_note">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 10"><polygon points="0 0 0 10 8 10 8 4 4 4 4 0 0 0"/><polygon points="5 0 5 3 8 3 5 0"/></svg>
+                            <div class='attachment_note_content' style="width: 30%">
+                                <span class="attachment_note_text">{_note}</span>
+                                <span class="attachment_note_name" style="white-space: nowrap">
+                                    <a href="#" data-bind="click: function() { showArticle(id); return false; }, text: note.name"></a>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div data-bind="if: type === 'doc'" class="msg-attach-j-doc attachment">
+                    <div style="width:100%;">
+                        <a data-bind="attr: { href: link, 'data-att-type': 'doc', 'data-att-id': id }" style="display:none" class="docGalleryItem viewerOpener"></a>
+
+                        <a class="docMainItem viewerOpener docGalleryItem" 
+                           data-bind="visible: document.preview && document.preview.medium, attr: { href: link, 'data-id': id }">
+
+                            <img class="docGalleryItem_main_preview" loading="lazy" 
+                                 data-bind="attr: { src: (document.preview && document.preview.medium) ? document.preview.medium : '', alt: document.name }">
+
+                            <div class="doc_top_panel doc_shown_by_hover">
+                                <div class="doc_volume_action" id="add_icon"></div>
+                            </div>
+
+                            <div class="doc_bottom_panel doc_shown_by_hover doc_content info_shown">
+                                <span class="doc_bottom_panel_name noOverflow doc_name" data-bind="text: document.name"></span>
+                                <span class="doc_bottom_panel_size" data-bind="text: document.size_str"></span>
+                            </div>
+                        </a>
+
+                        <div class="docMainItem docListViewItem" 
+                             data-bind="visible: !(document.preview && document.preview.medium), attr: { 'data-id': id }">
+
+                            <a class="viewerOpener" data-bind="attr: { href: link }" style="margin-left: 10%;">
+                                <img class="doc_icon" data-bind="visible: document.preview && document.preview.tiny, attr: { src: (document.preview && document.preview.tiny) ? document.preview.tiny : '' }">
+                                <div class="doc_icon no_image" data-bind="visible: !document.preview">
+                                    <span data-bind="text: document.ext" style="justify-content: center; align-items: center; display:flex;"></span>
+                                </div>
+                            </a>
+
+                            <div class="doc_content noOverflow">
+                                <a class="viewerOpener noOverflow" data-bind="attr: { href: link }">
+                                    <b class="noOverflow doc_name" data-bind="text: document.name"></b>
+                                </a>
+                                <div class="doc_content_info">
+                                    <span data-bind="text: document.pub_time" style="display:inline;"></span>, <span data-bind="text: document.size_str" style="display:inline;"></span>
+                                </div>
+                            </div>
+
+                            <div class="doc_volume">
+                                <div id="add_icon"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="msg-fwd-tpl">
+        <div class="fwd-message-block">
+            <div class="fwd-message-head">
+                <a class="fwd-avatar-link" data-bind="attr: { href: sender.link }"><img class="fwd-avatar" data-bind="attr: { src: sender.avatar, alt: sender.name }" /></a>
+                <div class="fwd-author-info">
+                    <a class="fwd-author-name" data-bind="attr: { href: sender.link }"><strong data-bind="text: sender.name"></strong></a>
+                    <span class="fwd-date" data-bind="text: window.msgFullDate(timing.ts)"></span>
+                </div>
+            </div>
+            <div class="fwd-text" data-bind="html: text"></div>
+            <!-- ko template: 'msg-attachments-tpl' --><!-- /ko -->
+            <!-- ko if: fwd && fwd.length -->
+            <div class="fwd-messages-container" data-bind="template: { name: 'msg-fwd-tpl', foreach: fwd }"></div>
+            <!-- /ko -->
+        </div>
+    </template>
+
     {script "js/node_modules/knockout/build/output/knockout-latest.js"}
     <script>
         window.MSG_STR = {
@@ -258,7 +304,14 @@
             reply:   {tr("messenger_reply")},
             forward: {tr("messenger_forward")},
             delete:  {tr("messenger_delete")},
+            noText:  {tr("messenger_no_text")},
+            fwdCount: {tr("messenger_forwarded_count", "%COUNT%")},
         };
+
+        window.fwdCountLabel = count => window.MSG_STR.fwdCount.replace("%COUNT%", count);
+
+        // текст сообщения без разметки, для превью над полем ввода
+        window.plainText = html => new DOMParser().parseFromString(html || "", "text/html").body.textContent.trim();
 
         // группировка сообщений подряд от одного отправителя
         const MSG_GROUP_INTERVAL = 10 * 60;
@@ -293,6 +346,8 @@
             ? new Date(msg.timing.ts * 1000).toTimeString().slice(0, 8)
             : msg.timing.sent;
 
+        window.msgFullDate = ts => window.msgDay(ts) + ", " + new Date(ts * 1000).toTimeString().slice(0, 5);
+
         window.isMsgNewDay = index => {
             const msgs = window.messages();
             const cur  = msgs[index];
@@ -311,14 +366,18 @@
             window.messages     = ko.observableArray(initialMessages);
             window.selectedMsgs = ko.observableArray([]);
             window.pinnedMsg    = ko.observable(null);
+            window.replyTo      = ko.observable(null);
+            window.forwardMsgs  = ko.observableArray([]);
             this.messages       = window.messages;
             this.selectedMsgs   = window.selectedMsgs;
             this.pinnedMsg      = window.pinnedMsg;
+            this.replyTo        = window.replyTo;
+            this.forwardMsgs    = window.forwardMsgs;
             this.selectionLabel = ko.pureComputed(() => {tr("messenger_selected_count", "%COUNT%")}.replace("%COUNT%", this.selectedMsgs().length));
             this.messageContent = ko.observable("");
             
             this.sendMessage = model => {
-		if(model.messageContent() === "" && !document.querySelector("#write [data-att-id]")) return false;
+                if(model.messageContent() === "" && !document.querySelector("#write [data-att-id]") && model.forwardMsgs().length === 0) return false;
                 
                 window.Msg.sendMessage(model.messageContent());
                 model.messageContent("");
@@ -575,7 +634,8 @@
                     "text": content,
                     "read": false,
                     "attachments": [],
-                    "forwarded": null,
+                    "reply": null,
+                    "fwd": [],
                     "_tuid": Math.ceil(performance.now())
                 };
             }
@@ -596,7 +656,8 @@
                     "text": content,
                     "read": true,
                     "attachments": [],
-                    "forwarded": null,
+                    "reply": null,
+                    "fwd": [],
                     "_tuid": Math.ceil(performance.now())
                 };
             }
@@ -663,52 +724,41 @@
                 }
             }
 
-            forwardMessage(msgId) {
-                this.forwardMessages([msgId]);
+            // как в openvk: сначала выбираем диалог, затем сообщения прикрепляются к полю ввода
+            forwardMessages(msgIds) {
+                const msgs = window.messages()
+                    .filter(m => msgIds.includes(m.uuid))
+                    .sort((a, b) => a.uuid - b.uuid)
+                    .map(m => ({ uuid: m.uuid, name: m.sender.name, text: window.plainText(m.text) }));
+                if(msgs.length === 0) return;
+
+                try {
+                    sessionStorage.setItem("im.forward", JSON.stringify(msgs));
+                } catch(e) {
+                    return fastError(tr("messages_error_1"));
+                }
+
+                window.selectedMsgs.removeAll();
+                location.assign("/im?forward=1");
             }
 
-            forwardMessages(msgIds) {
-                msgIds = [...msgIds].sort((a, b) => a - b);
+            // пересылка, выбранная на странице диалогов
+            takeForward() {
+                const params = new URLSearchParams(location.search);
+                if(!params.has("forward")) return;
 
-                let showForwardDialog = (dialogs) => {
-                    let options = dialogs.map(d =>
-                        '<div class="forward-dialog-item" data-id="' + d.id + '" style="display:flex; align-items:center; gap:8px; padding:6px; cursor:pointer; border-radius:6px;" onmouseover="this.style.background=\'rgba(255,255,255,0.05)\'" onmouseout="this.style.background=\'\'">' +
-                            '<img src="' + d.avatar + '" style="width:32px; height:32px; border-radius:50%;" />' +
-                            '<span>' + escapeHtml(d.name) + '</span>' +
-                        '</div>'
-                    ).join("");
+                try {
+                    const msgs = JSON.parse(sessionStorage.getItem("im.forward") || "[]");
+                    sessionStorage.removeItem("im.forward");
+                    window.forwardMsgs(Array.isArray(msgs) ? msgs : []);
+                } catch(e) {}
 
-                    let body = '<div style="max-height:300px; overflow-y:auto;">' + options + '</div>';
-                    let box = MessageBox({tr("messenger_forward")}, body, [{tr("cancel")}], [Function.noop], true);
+                params.delete("forward");
+                history.replaceState(history.state, "", location.pathname + "?" + params);
+            }
 
-                    u(box.getNode()).find(".forward-dialog-item").on("click", async (e) => {
-                        let userId = parseInt(u(e.currentTarget).attr("data-id"));
-                        box.close();
-                        window.selectedMsgs.removeAll();
-
-                        for(const msgId of msgIds) {
-                            try {
-                                const msg = await this._post("/im/api/messages" + userId + "/" + msgId + "/forward.json");
-                                if(userId === {$correspondent->getId()}) {
-                                    this.addMessage(msg);
-                                }
-                            } catch(e) {
-                                console.error("Forward failed", e);
-                            }
-                        }
-                    });
-                };
-
-                if(window._dialogs) {
-                    showForwardDialog(window._dialogs);
-                } else {
-                    fetch("/im/api/dialogs.json")
-                        .then(r => r.json())
-                        .then(dialogs => {
-                            window._dialogs = dialogs;
-                            showForwardDialog(dialogs);
-                        });
-                }
+            clearForward() {
+                window.forwardMsgs([]);
             }
 
             editMessage(msgId, currentText) {
@@ -745,23 +795,31 @@
                 ]);
             }
 
-            replyMessage(msgId, text, senderName) {
-                window._replyToId = msgId;
-                document.getElementById("reply-preview").style.display = "block";
-                document.getElementById("reply-sender-name").textContent = senderName;
-                document.getElementById("reply-text").innerHTML = text.replace(/<[^>]+>/g, "").substring(0, 100);
+            replyMessage(msg) {
+                if(!(msg.uuid > 0)) return;
+
+                window.replyTo({ uuid: msg.uuid, sender: { name: msg.sender.name }, text: msg.text });
                 u("textarea[name=message]").nodes[0].focus();
-		let input = document.querySelector(".messenger-app--input");
-		if(input) input.style.minHeight = "135px";
             }
 
             clearReply() {
-                window._replyToId = null;
-                document.getElementById("reply-preview").style.display = "none";
-                document.getElementById("reply-sender-name").textContent = "";
-                document.getElementById("reply-text").innerHTML = "";
-		let input = document.querySelector(".messenger-app--input");
-		if(input) input.style.minHeight = "";
+                window.replyTo(null);
+            }
+
+            // клик по цитате ведёт к исходному сообщению, клик по ссылке внутри работает как обычно
+            onReplyClick(reply, e) {
+                if(e.target.closest("a")) return true;
+
+                this.goToMessage(reply.uuid);
+            }
+
+            // догружаем историю, пока исходное сообщение не окажется в ленте
+            goToMessage(uuid) {
+                for(let i = 0; i < 30 && !this.historyEnd && !window.messages().some(m => m.uuid === uuid); i++) {
+                    this._loadHistory();
+                }
+
+                this.scrollToMessage(uuid);
             }
 
             deleteMessages(msgIds) {
@@ -802,8 +860,8 @@
                 fd.set("hash", {$csrfToken});
                 fd.set("content", "");
                 fd.set("attachments", "sticker" + sticker.id);
-                if(window._replyToId) {
-                    fd.set("reply_to", window._replyToId);
+                if(window.replyTo()) {
+                    fd.set("reply_to", window.replyTo().uuid);
                     this.clearReply();
                 }
 
@@ -830,10 +888,15 @@
                 let msgData = new FormData();
                 msgData.set("content", content);
                 msgData.set("hash", {$csrfToken});
-		if(window._replyToId) {
-		    msgData.set("reply_to", window._replyToId);
-		    this.clearReply();
-		}                
+                if(window.replyTo()) {
+                    msgData.set("reply_to", window.replyTo().uuid);
+                    this.clearReply();
+                }
+
+                if(window.forwardMsgs().length > 0) {
+                    msgData.set("forward_messages", window.forwardMsgs().map(m => m.uuid).join(","));
+                    this.clearForward();
+                }
 
                 const writeBox = document.querySelector('.messenger-app--input #write');
                 let attachmentElements = writeBox ? writeBox.querySelectorAll("[data-att-id]") : document.querySelectorAll("[data-att-id]");
@@ -875,7 +938,8 @@
                             },
                             read: true,
                             attachments: [],
-                            forwarded: null,
+                            reply: null,
+                            fwd: [],
                             uuid: -4096
                         });
                         
@@ -915,6 +979,7 @@
         }
         
         window.Msg = new Messenger([]);
+        window.Msg.takeForward();
 
         document.querySelector(".messenger-app--input #write form")?.addEventListener("sticker:send", e => {
             e.preventDefault();
@@ -946,7 +1011,7 @@
             switch(act) {
                 case "pin":     return window.Msg.pinMessage(msg.uuid);
                 case "edit":    return window.Msg.editMessage(msg.uuid, msg.text);
-                case "reply":   return window.Msg.replyMessage(msg.uuid, msg.text, msg.sender.name);
+                case "reply":   return window.Msg.replyMessage(msg);
                 case "forward": return window.Msg.forwardMessages([msg.uuid]);
                 case "delete":  return window.Msg.deleteMessages([msg.uuid]);
             }
@@ -962,13 +1027,23 @@
             }
 
             const el = e.target.closest(".messenger-app--messages---message");
-            if(!el || e.target.closest("a, button, video, audio, input, textarea, .bsdn, .attachments, .msg-tools")) return;
+            if(!el || e.target.closest("a, button, video, audio, input, textarea, .bsdn, .attachments, .msg-tools, .reply-msg-container")) return;
             if(window.getSelection().toString() !== "") return;
 
             const uuid = ko.dataFor(el).uuid;
             if(!(uuid > 0)) return;
 
             window.selectedMsgs.indexOf(uuid) === -1 ? window.selectedMsgs.push(uuid) : window.selectedMsgs.remove(uuid);
+        });
+
+        // двойной клик по сообщению — ответить, как в openvk
+        document.querySelector(".messenger-app--messages").addEventListener("dblclick", e => {
+            const el = e.target.closest(".messenger-app--messages---message");
+            if(!el || e.target.closest("a, button, video, audio, input, textarea, .bsdn, .attachments, .msg-tools, .reply-msg-container, .fwd-messages-container")) return;
+            if(!document.querySelector("#write textarea")) return;
+
+            window.getSelection().removeAllRanges();
+            window.Msg.replyMessage(ko.dataFor(el));
         });
 
         tippy.delegate(".messenger-app--messages", {
@@ -1009,10 +1084,6 @@
             },
         });
 
-        window._dialogs = null;
-        fetch("/im/api/dialogs.json")
-            .then(r => r.json())
-            .then(dialogs => { window._dialogs = dialogs; });
         
         document.querySelector(".messenger-app--messages").addEventListener("click", (e) => {
             if(e.target.closest(".photoMessengerOpen")) {

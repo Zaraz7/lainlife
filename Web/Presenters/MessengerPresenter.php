@@ -8,7 +8,6 @@ use Chandler\Signaling\SignalManager;
 use openvk\Web\Events\NewMessageEvent;
 use openvk\Web\Events\DeleteMessageEvent;
 use openvk\Web\Events\EditMessageEvent;
-use openvk\Web\Events\ForwardMessageEvent;
 use openvk\Web\Models\Repositories\{Users, Clubs, Messages, MessengerDialogs};
 use openvk\Web\Models\Entities\Messages\Sticker;
 use openvk\Web\Models\Entities\{Message, Correspondence, User};
@@ -43,6 +42,66 @@ final class MessengerPresenter extends OpenVKPresenter
         } elseif ($id === 0) {
             return $this->user->identity;
         }
+    }
+
+    private function isMessageBetween(Message $msg, object $a, object $b): bool
+    {
+        $rec  = $msg->getRecord();
+        $from = [$rec->sender_type, (int) $rec->sender_id];
+        $to   = [$rec->recipient_type, (int) $rec->recipient_id];
+        $a    = [get_class($a), $a->getId()];
+        $b    = [get_class($b), $b->getId()];
+
+        return ($from === $a && $to === $b) || ($from === $b && $to === $a);
+    }
+
+    private function isMessageParticipant(Message $msg): bool
+    {
+        $rec = $msg->getRecord();
+        $me  = [User::class, $this->user->id];
+
+        return [$rec->sender_type, (int) $rec->sender_id] === $me || [$rec->recipient_type, (int) $rec->recipient_id] === $me;
+    }
+
+    // ответить можно только на живое сообщение из этого же диалога
+    private function getReplyTarget(object $correspondent): ?Message
+    {
+        $id = (int) $this->postParam("reply_to");
+        if ($id <= 0) {
+            return null;
+        }
+
+        $msg = $this->messages->get($id);
+        if (!$msg || $msg->isDeleted() || !$this->isMessageBetween($msg, $this->user->identity, $correspondent)) {
+            header("HTTP/1.1 403 Forbidden");
+            exit();
+        }
+
+        return $msg;
+    }
+
+    // переслать можно любые сообщения из своих диалогов
+    private function getForwardTargets(): array
+    {
+        $ids = array_unique(array_filter(array_map("intval", explode(",", (string) $this->postParam("forward_messages")))));
+        if (sizeof($ids) > Message::MAX_FORWARDS) {
+            header("HTTP/1.1 400 Bad Request");
+            exit();
+        }
+
+        $messages = [];
+        foreach ($ids as $id) {
+            $msg = $this->messages->get($id);
+            if (!$msg || $msg->isDeleted() || !$this->isMessageParticipant($msg)) {
+                header("HTTP/1.1 403 Forbidden");
+                exit();
+            }
+
+            $messages[] = $msg;
+        }
+
+        usort($messages, fn($a, $b) => $a->getId() <=> $b->getId());
+        return $messages;
     }
 
     public function renderIndex(): void
@@ -242,7 +301,7 @@ final class MessengerPresenter extends OpenVKPresenter
         $this->assertUserLoggedIn();
         $this->willExecuteWriteAction();
 
-        if (empty($this->postParam("content")) && empty($this->postParam("attachments"))) {
+        if (empty($this->postParam("content")) && empty($this->postParam("attachments")) && empty($this->postParam("forward_messages"))) {
             header("HTTP/1.1 400 Bad Request");
             exit("<b>Argument error</b>: param 'content' expected to be string, undefined given.");
         }
@@ -253,6 +312,9 @@ final class MessengerPresenter extends OpenVKPresenter
             exit();
         }
 
+        $replyTo  = $this->getReplyTarget($sel);
+        $forwards = $this->getForwardTargets();
+
         $attachments = [];
         if (!empty($this->postParam("attachments"))) {
             $attachments_array = array_slice(explode(",", $this->postParam("attachments")), 0, OPENVK_ROOT_CONF["openvk"]["preferences"]["wall"]["postSizes"]["maxAttachments"]);
@@ -261,18 +323,19 @@ final class MessengerPresenter extends OpenVKPresenter
             }
         }
 
-        if (!Sticker::checkMessage($attachments, $this->postParam("content"), $this->user->identity)) {
+        if (!Sticker::checkMessage($attachments, $this->postParam("content"), $this->user->identity) || ($forwards && array_filter($attachments, fn($a) => $a instanceof Sticker))) {
             header("HTTP/1.1 400 Bad Request");
             exit();
         }
 
         $cor = new Correspondence($this->user->identity, $sel);
         $msg = new Message();
-        $msg->setContent($this->postParam("content"));
-        if (!empty($this->postParam("reply_to"))) {
-            $msg->setForwarded_from((int) $this->postParam("reply_to"));
+        $msg->setContent($this->postParam("content") ?? "");
+        if ($replyTo) {
+            $msg->setReply_To($replyTo->getId());
         }
         $cor->sendMessage($msg);
+        $msg->setForwardedMessages($forwards);
 
         foreach ($attachments as $attachment) {
             if (!$attachment || $attachment->isDeleted() || !$attachment->canBeViewedBy($this->user->identity)) {
@@ -312,6 +375,16 @@ final class MessengerPresenter extends OpenVKPresenter
             }
             if ($html !== "") {
                 $attachmentData['html'] = $html;
+            }
+        }
+        unset($attachmentData);
+
+        // плееры нужны и во вложениях пересланных сообщений
+        if (!empty($simplifiedArray['fwd'])) {
+            foreach ($messageObj->getForwardedMessages() as $index => $fwd) {
+                if (isset($simplifiedArray['fwd'][$index])) {
+                    $this->enrichAttachmentsWithHTML($fwd, $simplifiedArray['fwd'][$index]);
+                }
             }
         }
     }
@@ -361,9 +434,6 @@ final class MessengerPresenter extends OpenVKPresenter
         }
 
         $msg->setContent($this->postParam("content"));
-        if (!empty($this->postParam("reply_to"))) {
-            $msg->setForwarded_from((int) $this->postParam("reply_to"));
-        }
         $msg->setEdited(time());
         $msg->save();
 
@@ -375,52 +445,6 @@ final class MessengerPresenter extends OpenVKPresenter
         header("HTTP/1.1 200 OK");
         header("Content-Type: application/json");
         $simple = $msg->simplify();
-        exit(json_encode($simple));
-    }
-
-    public function renderApiForwardMessage(int $sel, int $msgId): void
-    {
-        $this->assertUserLoggedIn();
-        $this->willExecuteWriteAction();
-
-        $origMsg = (new Messages())->get($msgId);
-        if (!$origMsg) {
-            header("HTTP/1.1 404 Not Found");
-            exit();
-        }
-
-        $origSender    = $origMsg->getSender();
-        $origRecipient = $origMsg->getRecipient();
-        $isParticipant = fn($e) => $e instanceof User && $e->getId() === $this->user->id;
-        if (!$isParticipant($origSender) && !$isParticipant($origRecipient)) {
-            header("HTTP/1.1 403 Forbidden");
-            exit();
-        }
-
-        $recipient = $this->getCorrespondent($sel);
-        if (!$recipient) {
-            header("HTTP/1.1 404 Not Found");
-            exit();
-        }
-
-        if ($recipient->getId() !== $this->user->id && !$recipient->getPrivacyPermission('messages.write', $this->user->identity)) {
-            header("HTTP/1.1 403 Forbidden");
-            exit();
-        }
-
-        $cor = new Correspondence($this->user->identity, $recipient);
-        $msg = new Message();
-        $msg->setContent($this->postParam("content") ?? "");
-        $msg->setForwarded_from($msgId);
-        $cor->sendMessage($msg);
-
-        $recipient = $msg->getRecipient();
-        $this->signaler->triggerEvent(new ForwardMessageEvent($msg), $recipient->getId());
-
-        header("HTTP/1.1 202 Accepted");
-        header("Content-Type: application/json");
-        $simple = $msg->simplify();
-        $this->enrichAttachmentsWithHTML($msg, $simple);
         exit(json_encode($simple));
     }
 

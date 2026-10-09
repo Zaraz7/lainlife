@@ -325,8 +325,6 @@ routes:
       handler: "Messenger->apiDeleteMessage"
     - url: "/im/api/messages{num}/{num}/edit.json"
       handler: "Messenger->apiEditMessage"
-    - url: "/im/api/messages{num}/{num}/forward.json"
-      handler: "Messenger->apiForwardMessage"
     - url: "/im/api/dialogs.json"
       handler: "Messenger->apiGetDialogs"
     - url: "/im/api/dialogs/action.json"

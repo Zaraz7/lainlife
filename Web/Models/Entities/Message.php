@@ -101,17 +101,58 @@ class Message extends RowModel
     }
 
 
-function getForwardedMessage(): ?Message
-{
-    $fwd = $this->getRecord()->forwarded_from;
-    if(is_null($fwd)) return NULL;
-    return (new \openvk\Web\Models\Repositories\Messages())->get($fwd);
-}
+    public const MAX_FORWARDS      = 100;
+    public const MAX_FORWARD_DEPTH = 10;
 
-function isForwarded(): bool
-{
-    return !is_null($this->getRecord()->forwarded_from);
-}
+    function getReplyTo(): ?Message
+    {
+        $id = $this->getRecord()->reply_to;
+        if (is_null($id)) {
+            return null;
+        }
+
+        return (new \openvk\Web\Models\Repositories\Messages())->get((int) $id);
+    }
+
+    /**
+     * Forwarded messages in the order they were attached.
+     *
+     * @returns Message[]
+     */
+    function getForwardedMessages(): array
+    {
+        $repo = new \openvk\Web\Models\Repositories\Messages();
+        $rels = DatabaseConnection::i()->getContext()->table("message_forwards")
+            ->where("message", $this->getId())
+            ->order("position ASC");
+
+        $messages = [];
+        foreach ($rels as $rel) {
+            $msg = $repo->get((int) $rel->forwarded);
+            if ($msg) {
+                $messages[] = $msg;
+            }
+        }
+
+        return $messages;
+    }
+
+    function setForwardedMessages(array $messages): void
+    {
+        $table = DatabaseConnection::i()->getContext()->table("message_forwards");
+        foreach (array_values($messages) as $position => $msg) {
+            $table->insert([
+                "message"   => $this->getId(),
+                "forwarded" => $msg->getId(),
+                "position"  => $position,
+            ]);
+        }
+    }
+
+    function isForwarded(): bool
+    {
+        return DatabaseConnection::i()->getContext()->table("message_forwards")->where("message", $this->getId())->count("*") > 0;
+    }
 
     /**
      * Is this message an ad?
@@ -135,7 +176,35 @@ function isForwarded(): bool
      * 
      * @returns array
      */
-    function simplify(): array
+    private function simplifySender(): array
+    {
+        $author = $this->getSender();
+
+        return [
+            "id"     => $author->getId(),
+            "link"   => $author->getURL(),
+            "avatar" => $author->getAvatarUrl("miniscule"),
+            "name"   => $author->getCanonicalName(),
+        ];
+    }
+
+    private function simplifyReply(): ?array
+    {
+        $reply = $this->getReplyTo();
+        if (!$reply) {
+            return null;
+        }
+
+        return [
+            "uuid"    => $reply->getId(),
+            "sender"  => $reply->simplifySender(),
+            "ts"      => $reply->getSendTime()->timestamp(),
+            "deleted" => $reply->isDeleted(),
+            "text"    => $reply->isDeleted() ? "" : $reply->getPreviewText(),
+        ];
+    }
+
+    function simplify(int $depth = 0): array
     {
         $author = $this->getSender();
         
@@ -219,7 +288,7 @@ function isForwarded(): bool
                 "id"     => $author->getId(),
                 "link"   => $_SERVER['REQUEST_SCHEME'] . "://" . $_SERVER['HTTP_HOST'] . $author->getURL(),
                 "avatar" => $author->getAvatarUrl(),
-                "name"   => $author->getFirstName().$unreadmsg,
+                "name"   => $depth > 0 ? $author->getCanonicalName() : $author->getFirstName(),
             ],
             "timing" => [
                 "sent"   => (string) $this->getSendTimeHumanized(),
@@ -227,7 +296,8 @@ function isForwarded(): bool
                 "edited" => is_null($this->getEditTime()) ? NULL : (string) $this->getEditTime(),
             ],
             "text"        => $this->getText(),
-            "forwarded"   => $this->isForwarded() ? $this->getForwardedMessage()?->simplify() : null,
+            "reply"       => $depth === 0 ? $this->simplifyReply() : null,
+            "fwd"         => $depth < self::MAX_FORWARD_DEPTH ? array_map(fn($m) => $m->simplify($depth + 1), $this->getForwardedMessages()) : [],
             "read"        => !$this->isUnread(),
             "attachments" => $attachments,
         ];

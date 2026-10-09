@@ -32,21 +32,32 @@ final class Messages extends VKAPIRequestHandler
 
     private function buildReplyStruct(Message $message): ?object
     {
-        if (!$message->isForwarded()) {
-            return null;
-        }
-
-        $fwd = $message->getForwardedMessage();
-        if (!$fwd || $fwd->isDeleted()) {
+        $reply = $message->getReplyTo();
+        if (!$reply || $reply->isDeleted()) {
             return null;
         }
 
         return (object) [
-            "id"      => $fwd->getId(),
-            "from_id" => $fwd->getSender()->getId(),
-            "text"    => $fwd->getText(false),
-            "date"    => $fwd->getSendTime()->timestamp(),
+            "id"      => $reply->getId(),
+            "from_id" => $reply->getSender()->getId(),
+            "text"    => $reply->getText(false),
+            "date"    => $reply->getSendTime()->timestamp(),
         ];
+    }
+
+    private function buildFwdStruct(Message $message, int $depth = 0): array
+    {
+        if ($depth >= Message::MAX_FORWARD_DEPTH) {
+            return [];
+        }
+
+        return array_map(fn($fwd) => (object) [
+            "from_id"      => $fwd->getSender()->getId(),
+            "text"         => $fwd->getText(false),
+            "date"         => $fwd->getSendTime()->timestamp(),
+            "attachments"  => $this->buildAttachmentsStruct($fwd),
+            "fwd_messages" => $this->buildFwdStruct($fwd, $depth + 1),
+        ], $message->getForwardedMessages());
     }
 
     /**
@@ -122,6 +133,7 @@ final class Messages extends VKAPIRequestHandler
             $rMsg->text       = $message->getText(false);
             $rMsg->emoji      = true;
             $rMsg->reply_message = $this->buildReplyStruct($message);
+            $rMsg->fwd_messages  = $this->buildFwdStruct($message);
             $rMsg->attachments   = $this->buildAttachmentsStruct($message);
 
             if ($preview_length > 0) {
@@ -148,7 +160,8 @@ final class Messages extends VKAPIRequestHandler
         int $sticker_id = -1,
         int $forGodSakePleaseDoNotReportAboutMyOnlineActivity = 0,
         string $attachment = "",
-        int $reply_to = 0
+        int $reply_to = 0,
+        string $forward_messages = ""
     ) { # интересно почему не attachments
         $this->requireUser();
         $this->willExecuteWriteAction();
@@ -163,7 +176,7 @@ final class Messages extends VKAPIRequestHandler
             $this->fail(-151, "Stickers are not implemented");
         }
 
-        if (empty($message) && empty($attachment) && $reply_to <= 0) {
+        if (empty($message) && empty($attachment) && empty($forward_messages)) {
             $this->fail(100, "Message text is empty or invalid");
         }
 
@@ -200,9 +213,27 @@ final class Messages extends VKAPIRequestHandler
         $repliedMsg = null;
         if ($reply_to > 0) {
             $repliedMsg = (new MSGRepo())->get($reply_to);
-            if (!$repliedMsg || $repliedMsg->isDeleted() || ($repliedMsg->getSender()->getId() !== $this->getUser()->getId() && $repliedMsg->getRecipient()->getId() !== $this->getUser()->getId())) {
+            $pair = [$repliedMsg?->getSender()->getId(), $repliedMsg?->getRecipient()->getId()];
+            sort($pair);
+            $dialog = [$this->getUser()->getId(), $peer->getId()];
+            sort($dialog);
+            if (!$repliedMsg || $repliedMsg->isDeleted() || $pair !== $dialog) {
                 $this->fail(15, "Access to replied message denied");
             }
+        }
+
+        $forwards = [];
+        foreach (array_unique(array_filter(array_map("intval", preg_split("%, ?%", $forward_messages)))) as $fwdId) {
+            $fwd = (new MSGRepo())->get($fwdId);
+            if (!$fwd || $fwd->isDeleted() || ($fwd->getSender()->getId() !== $this->getUser()->getId() && $fwd->getRecipient()->getId() !== $this->getUser()->getId())) {
+                $this->fail(15, "Access to forwarded message denied");
+            }
+
+            $forwards[] = $fwd;
+        }
+
+        if (sizeof($forwards) > Message::MAX_FORWARDS) {
+            $this->fail(913, "Too many forwarded messages");
         }
 
         # Finally we get to send a message!
@@ -210,13 +241,16 @@ final class Messages extends VKAPIRequestHandler
         $msg  = new Message();
         $msg->setContent($message);
         if ($repliedMsg) {
-            $msg->setForwarded_from($repliedMsg->getId());
+            $msg->setReply_To($repliedMsg->getId());
         }
 
         $msg = $chat->sendMessage($msg, true);
         if (!$msg) {
             $this->fail(950, "Internal error");
-        } elseif (!empty($attachment)) {
+        }
+
+        $msg->setForwardedMessages($forwards);
+        if (!empty($attachment)) {
             $attachs = parseAttachments($attachment);
 
             # Работают только фотки, остальное просто не будет отображаться.
@@ -343,6 +377,7 @@ final class Messages extends VKAPIRequestHandler
                 $lastMessagePreview->emoji      = true;
                 $lastMessagePreview->attachments   = $this->buildAttachmentsStruct($lastMessage);
                 $lastMessagePreview->reply_message = $this->buildReplyStruct($lastMessage);
+                $lastMessagePreview->fwd_messages  = $this->buildFwdStruct($lastMessage);
 
                 if ($extended == 1) {
                     $users[] = $peer->getId();
@@ -471,6 +506,7 @@ final class Messages extends VKAPIRequestHandler
             $rMsg->text       = $message->getText(false);
             $rMsg->emoji      = true;
             $rMsg->reply_message = $this->buildReplyStruct($message);
+            $rMsg->fwd_messages  = $this->buildFwdStruct($message);
             $rMsg->attachments   = $this->buildAttachmentsStruct($message);
 
             $results[] = $rMsg;

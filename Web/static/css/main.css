@@ -1545,6 +1545,183 @@ table.User {
     transition: background-color .3s;
 }
 
+.messenger-app--messages---message.msg-replying-to {
+    background-color: rgba(81, 129, 184, .12);
+    box-shadow: inset 3px 0 0 #5181b8;
+}
+
+/* ответ на сообщение, как в openvk */
+.messenger-app--messages---message ._content .reply-msg-container {
+    margin: 3px 0;
+    padding: 0 30px 0 15px;
+    border-left: 1px solid #848484;
+    border-radius: 0 2px 2px 0;
+    cursor: pointer;
+    transition: background .15s ease;
+}
+
+.messenger-app--messages---message ._content .reply-msg-container:hover {
+    background: rgba(0, 0, 0, .03);
+}
+
+.messenger-app--messages---message ._content .reply-msg-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 2px;
+    line-height: 1.2;
+}
+
+.messenger-app--messages---message ._content .reply-avatar-link {
+    display: inline-flex;
+    flex-shrink: 0;
+}
+
+.messenger-app--messages---message ._content .reply-avatar {
+    width: 15px;
+    height: 15px;
+    border-radius: 2px;
+    object-fit: cover;
+}
+
+.messenger-app--messages---message ._content .reply-author-name,
+.messenger-app--messages---message ._content .fwd-author-name {
+    font-size: 11px;
+    color: #2a5885;
+}
+
+.messenger-app--messages---message ._content span.reply-date,
+.messenger-app--messages---message ._content span.fwd-date {
+    display: inline;
+    width: auto;
+    font-size: 11px;
+    color: #777;
+}
+
+.messenger-app--messages---message ._content .reply-text {
+    font-size: 11px;
+    line-height: 1.35;
+    color: #222;
+    word-break: break-word;
+    max-height: 45px;
+    overflow: hidden;
+}
+
+.messenger-app--messages---message ._content .reply-no-text {
+    color: #777;
+    font-style: italic;
+}
+
+/* пересланные сообщения */
+.messenger-app--messages---message ._content .fwd-messages-count {
+    margin-top: 6px;
+    font-size: 11px;
+    color: #848484;
+}
+
+.messenger-app--messages---message ._content .fwd-messages-container {
+    margin-top: 4px;
+    padding-left: 15px;
+    border-left: 2px solid #848484;
+}
+
+.messenger-app--messages---message ._content .fwd-message-block > .fwd-messages-container {
+    margin: 5px 0 3px;
+    padding-left: 8px;
+}
+
+.messenger-app--messages---message ._content .fwd-message-block {
+    margin: 4px 0 6px;
+}
+
+.messenger-app--messages---message ._content .fwd-message-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+}
+
+.messenger-app--messages---message ._content .fwd-avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: 3px;
+    object-fit: cover;
+    display: block;
+}
+
+.messenger-app--messages---message ._content .fwd-author-info {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.messenger-app--messages---message ._content .fwd-text {
+    font-size: 11px;
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+/* ответ и пересылка над кнопкой отправки */
+.messenger-app--input.with-reply {
+    height: auto !important;
+    min-height: 80px;
+}
+
+.messenger-app--input .input-reply {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: -2px 0 8px;
+    padding: 3px 0 3px 8px;
+    border-left: 2px solid #5181b8;
+    cursor: pointer;
+}
+
+.messenger-app--input .input-reply-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.messenger-app--input .input-reply-title {
+    font-weight: bold;
+    color: #2a5885;
+}
+
+.messenger-app--input .input-reply-text {
+    max-height: 42px;
+    overflow: hidden;
+    color: #656565;
+}
+
+.messenger-app--input .input-reply-text,
+.messenger-app--input .input-fwd-item {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.messenger-app--input .input-close {
+    padding: 0 6px;
+    font-size: 14px;
+    color: #999;
+    text-decoration: none;
+}
+
+.messenger-app--input .input-close:hover {
+    color: #555;
+}
+
+/* выбор диалога для пересылки */
+.crp-forward-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #d6d6d6;
+    background-color: #f9f9f9;
+}
+
 .msg-check {
     position: absolute;
     left: -26px;

@@ -18,6 +18,13 @@
     </div>
 
     {if sizeof($corresps) > 0}
+        <div class="crp-forward-bar" style="display: none;">
+            <b>{_messenger_forward_to}</b>
+            <span class="crp-forward-bar--actions">
+                <a href="/im?sel=0&forward=1">{_saved_messages}</a> |
+                <a class="crp-forward-bar--cancel" href="/im">{_cancel}</a>
+            </span>
+        </div>
         <div class="crp-list scroll_container">
             {include "entries.latte", corresps => $corresps, dialogSettings => $dialogSettings, thisUser => $thisUser}
         </div>
@@ -51,6 +58,36 @@
                     const res = await fetch("/im/api/dialogs/action.json", { method: "POST", body: fd });
                     if(!res.ok) throw new Error(res.status);
                 };
+
+                // режим выбора, кому переслать сообщения
+                const list = document.querySelector(".crp-list");
+                let forwarding = false;
+                try {
+                    forwarding = new URLSearchParams(location.search).has("forward") && !!sessionStorage.getItem("im.forward");
+                } catch(e) {}
+
+                if(forwarding) {
+                    document.querySelector(".crp-forward-bar").style.display = "";
+                    document.querySelector(".crp-forward-bar--cancel").addEventListener("click", () => {
+                        try { sessionStorage.removeItem("im.forward"); } catch(e) {}
+                    });
+
+                    const pick = e => {
+                        const entry = e.target.closest(".crp-entry");
+                        if(!entry || e.target.closest(".crp-entry--menu")) return;
+
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if(e.type === "click") location.assign(entry.dataset.imUrl + "&forward=1");
+                    };
+                    ["pointerdown", "mousedown", "click"].forEach(type => list.addEventListener(type, pick, true));
+
+                    document.querySelectorAll(".paginator a[href], #act_tab_a").forEach(a => {
+                        const url = new URL(a.href, location.href);
+                        url.searchParams.set("forward", "1");
+                        a.href = url;
+                    });
+                }
 
                 const fail = () => NewNotification({tr("error")}, {tr("messenger_chat_action_error")}, null, Function.noop, 5000);
 
@@ -169,7 +206,6 @@
                 });
 
                 // перетаскивание закреплённых чатов
-                const list = document.querySelector(".crp-list");
                 let drag = null;
                 let justDragged = false;
 
