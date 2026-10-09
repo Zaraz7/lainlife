@@ -10,7 +10,7 @@ use openvk\Web\Events\DeleteMessageEvent;
 use openvk\Web\Events\EditMessageEvent;
 use openvk\Web\Models\Repositories\{Users, Clubs, Messages, MessengerDialogs};
 use openvk\Web\Models\Entities\Messages\Sticker;
-use openvk\Web\Models\Entities\{Message, Correspondence, User};
+use openvk\Web\Models\Entities\{Message, Correspondence, User, Photo, Video, Audio, Document};
 
 final class MessengerPresenter extends OpenVKPresenter
 {
@@ -595,6 +595,104 @@ final class MessengerPresenter extends OpenVKPresenter
 
         header("Content-Type: application/json");
         exit(json_encode(["pinned" => $msg ? $msg->simplify() : null]));
+    }
+
+    // карточка собеседника для меню вложений
+    public function renderApiPeerInfo(int $sel): void
+    {
+        $this->assertUserLoggedIn();
+
+        $peer = $this->getCorrespondent($sel);
+        if (!$peer) {
+            $this->notFound();
+        }
+
+        $me     = $this->user->identity;
+        $isUser = $peer instanceof User;
+        $isSelf = $isUser && $peer->getId() === $me->getId();
+
+        $birthday = null;
+        if ($isUser && !$isSelf && $peer->getBirthday() && $peer->getBirthdayPrivacy() < 2 && $peer->getPrivacyPermission("page.info.read", $me)) {
+            $birthday = $peer->getBirthdayPrivacy() === 0
+                ? $peer->getBirthday()->format("%e %B %Y") . ", " . tr("years", $peer->getAge())
+                : $peer->getBirthday()->format("%e %B");
+        }
+
+        // пустые разделы не показываем, как в телеграме
+        $counts = [];
+        foreach ((new Correspondence($me, $peer))->getAttachmentsCount() as $kind => $count) {
+            if ($count > 0) {
+                $counts[] = ["kind" => $kind, "label" => tr("messenger_info_{$kind}s", $count), "title" => tr("messenger_info_{$kind}s_title")];
+            }
+        }
+
+        $this->returnJson([
+            "name"      => $isSelf ? tr("saved_messages") : $peer->getCanonicalName(),
+            "avatar"    => $peer->getAvatarUrl("normal"),
+            "link"      => $peer->getURL(),
+            "self"      => $isSelf,
+            "shortcode" => $isSelf ? null : $peer->getShortCode(),
+            "birthday"  => $birthday ? trim($birthday) : null,
+            "counts"    => $counts,
+            "blocked"   => ($isUser && !$isSelf) ? $peer->isBlacklistedBy($me) : null,
+            "peer_id"   => $isUser ? $peer->getId() : null,
+        ]);
+    }
+
+    public function renderApiPeerAttachments(int $sel): void
+    {
+        $this->assertUserLoggedIn();
+
+        $peer = $this->getCorrespondent($sel);
+        $kind = (string) $this->queryParam("type");
+        if (!$peer || !in_array($kind, Correspondence::ATTACHMENT_KINDS, true)) {
+            $this->notFound();
+        }
+
+        $perPage = 30;
+        $offset  = max(0, (int) $this->queryParam("offset"));
+        $found   = (new Correspondence($this->user->identity, $peer))->getAttachments($kind, $offset, $perPage + 1);
+
+        $items = [];
+        foreach (array_slice($found, 0, $perPage) as $item) {
+            if ($item instanceof Photo) {
+                $items[] = [
+                    "id"    => $item->getPrettyId(),
+                    "thumb" => $item->getURLBySizeId("normal"),
+                    "url"   => $item->getURL(),
+                ];
+            } elseif ($item instanceof Video) {
+                $items[] = [
+                    "id"     => $item->getOwner()->getId() . "_" . $item->getVirtualId(),
+                    "name"   => $item->getName(),
+                    "thumb"  => $item->getThumbnailURL(),
+                    "length" => $item->getFormattedLength(),
+                ];
+            } elseif ($item instanceof Audio) {
+                $items[] = [
+                    "html" => $this->getTemplatingEngine()->renderToString(dirname(__FILE__) . "/templates/Audio/player.latte", [
+                        "audio"       => $item,
+                        "thisUser"    => $this->user->identity,
+                        "hideButtons" => false,
+                        "club"        => null,
+                    ]),
+                ];
+            } elseif ($item instanceof Document) {
+                $items[] = [
+                    "link"    => "/doc" . $item->getPrettyId(),
+                    "url"     => preg_replace("~^https?:~", "", $item->getURL()),
+                    "name"    => $item->getName(),
+                    "ext"     => $item->getFileExtension(),
+                    "size"    => readable_filesize($item->getFilesize()),
+                    "preview" => $item->hasPreview() ? $item->getPreview()->getURLBySizeId("medium") : null,
+                ];
+            }
+        }
+
+        $this->returnJson([
+            "items" => $items,
+            "more"  => sizeof($found) > $perPage,
+        ]);
     }
 
     public function renderApiGetDialogs(): void

@@ -1712,6 +1712,249 @@ table.User {
     color: #555;
 }
 
+/* скрепка в хедере чата */
+.im-header-right {
+    float: right;
+    display: flex;
+    align-items: center;
+}
+
+.im-header-online {
+    padding-right: 8px;
+    margin-right: 6px;
+    border-right: 1px solid currentColor;
+    line-height: 12px;
+}
+
+.im-peer-info-btn {
+    display: flex;
+    cursor: pointer;
+    opacity: .85;
+}
+
+.im-peer-info-btn:hover {
+    opacity: 1;
+}
+
+/* меню вложений и информация о собеседнике */
+.im-peer-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, .5);
+}
+
+.im-peer-modal--box {
+    width: 360px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, .3);
+    overflow: hidden;
+}
+
+.im-peer-modal--page {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+    position: relative;
+}
+
+.im-peer-modal--page[hidden] {
+    display: none;
+}
+
+.im-peer-modal--close,
+.im-peer-modal--back {
+    display: flex;
+    padding: 4px;
+    color: #888;
+    cursor: pointer;
+}
+
+.im-peer-modal--close:hover,
+.im-peer-modal--back:hover {
+    color: #333;
+}
+
+.im-peer-modal--page[data-page="main"] > .im-peer-modal--close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+
+.im-peer-modal--head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 24px 20px 16px;
+    background: #f7f8fa;
+}
+
+.im-peer-modal--avatar {
+    display: block;
+    width: 100px;
+    border-radius: 2px;
+}
+
+.im-peer-modal--avatar.avatar-style-1,
+.im-peer-modal--avatar.avatar-style-2 {
+    height: 100px;
+    object-fit: cover;
+    object-position: top;
+}
+
+.im-peer-modal--avatar.avatar-style-2 {
+    border-radius: 50%;
+}
+
+.im-peer-modal--name {
+    font-size: 13px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.im-peer-modal--section {
+    padding: 6px 0;
+    border-top: 6px solid #f0f2f5;
+}
+
+.im-peer-modal--info {
+    padding: 6px 20px;
+}
+
+.im-peer-modal--label {
+    color: #888;
+    font-size: 11px;
+}
+
+.im-peer-modal--row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 20px;
+    color: inherit;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.im-peer-modal--row:hover {
+    background: rgba(81, 129, 184, .08);
+    text-decoration: none;
+}
+
+.im-peer-modal--row img {
+    width: 22px;
+    height: 22px;
+}
+
+.im-peer-modal--danger span {
+    color: #c3423c;
+}
+
+.im-peer-modal--bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 10px 10px 8px;
+    border-bottom: 1px solid #e7e8ec;
+}
+
+.im-peer-modal--title {
+    flex: 1;
+}
+
+.im-peer-modal--list {
+    height: 420px;
+    max-height: calc(85vh - 50px);
+    overflow-y: auto;
+    padding: 6px;
+    box-sizing: border-box;
+}
+
+.im-peer-modal--list-photo,
+.im-peer-modal--list-gif {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-auto-rows: 112px;
+    gap: 3px;
+    align-content: start;
+}
+
+.im-peer-att--photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.im-peer-att--row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px;
+    border-radius: 3px;
+    color: inherit;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.im-peer-att--row:hover {
+    background: rgba(81, 129, 184, .08);
+    text-decoration: none;
+}
+
+.im-peer-att--row img,
+.im-peer-att--ext {
+    width: 64px;
+    height: 44px;
+    flex-shrink: 0;
+    object-fit: cover;
+    border-radius: 2px;
+}
+
+.im-peer-att--ext {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e7edf3;
+    color: #55677d;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.im-peer-att--name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.im-peer-att--meta {
+    color: #888;
+    font-size: 11px;
+}
+
+.im-peer-att--audio {
+    padding: 0 2px;
+}
+
+.im-peer-modal--empty {
+    grid-column: 1 / -1;
+    padding: 40px 0;
+    text-align: center;
+    color: #888;
+}
+
 /* выбор диалога для пересылки */
 .fwd-dialogs {
     max-height: 300px;

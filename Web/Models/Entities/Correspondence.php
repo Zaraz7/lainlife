@@ -254,6 +254,69 @@ class Correspondence
         return $msgs;
     }
 
+    public const ATTACHMENT_KINDS = ["photo", "video", "doc", "audio", "gif"];
+
+    // общая часть выборки вложений из видимых владельцу сообщений диалога
+    private function attachmentsQuery(string $select, string $tail = ""): array
+    {
+        $kind = "CASE a.attachable_type
+            WHEN 'openvk\\\\Web\\\\Models\\\\Entities\\\\Photo' THEN 'photo'
+            WHEN 'openvk\\\\Web\\\\Models\\\\Entities\\\\Video' THEN 'video'
+            WHEN 'openvk\\\\Web\\\\Models\\\\Entities\\\\Audio' THEN 'audio'
+            WHEN 'openvk\\\\Web\\\\Models\\\\Entities\\\\Document' THEN IF(d.type = 3, 'gif', 'doc')
+        END";
+
+        $query = "SELECT $select FROM (
+            SELECT a.attachable_type, a.attachable_id, m.id AS message_id, $kind AS kind
+            FROM attachments a
+            JOIN messages m ON a.target_type = ? AND a.target_id = m.id
+            LEFT JOIN documents d ON a.attachable_type = ? AND d.id = a.attachable_id
+            WHERE m.deleted = 0
+              AND m.id > " . $this->getClearedTill() . str_replace("`id`", "m.id", $this->getHiddenCondition()) . "
+              AND ((m.sender_type = ? AND m.sender_id = ? AND m.recipient_type = ? AND m.recipient_id = ?)
+                OR (m.sender_type = ? AND m.sender_id = ? AND m.recipient_type = ? AND m.recipient_id = ?))
+        ) att WHERE att.kind IS NOT NULL $tail";
+
+        [$a, $b] = $this->correspondents;
+        return [$query, Message::class, Document::class,
+            get_class($a), $a->getId(), get_class($b), $b->getId(),
+            get_class($b), $b->getId(), get_class($a), $a->getId()];
+    }
+
+    /**
+     * Number of attachments of each kind in the dialog.
+     */
+    public function getAttachmentsCount(): array
+    {
+        $counts = array_fill_keys(self::ATTACHMENT_KINDS, 0);
+        $args   = $this->attachmentsQuery("att.kind, COUNT(*) AS cnt", "GROUP BY att.kind");
+        foreach (DatabaseConnection::i()->getConnection()->query(...$args) as $row) {
+            $counts[$row->kind] = (int) $row->cnt;
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Attachments of one kind, newest first.
+     */
+    public function getAttachments(string $kind, int $offset = 0, int $limit = 30): array
+    {
+        $args = $this->attachmentsQuery("att.attachable_type, att.attachable_id", "AND att.kind = ? ORDER BY att.message_id DESC, att.attachable_id DESC LIMIT ? OFFSET ?");
+        array_push($args, $kind, $limit, $offset);
+
+        $items = [];
+        foreach (DatabaseConnection::i()->getConnection()->query(...$args) as $row) {
+            $repo = str_replace("Entities", "Repositories", $row->attachable_type . "s");
+            $item = (new $repo())->get((int) $row->attachable_id);
+            if ($item && !$item->isDeleted()) {
+                $items[] = $item;
+            }
+        }
+
+        return $items;
+    }
+
     /**
      * Get messages that were edited or deleted (soft-deleted) after $since.
      * Used for polling-based sync instead of long-poll/signaler push.
