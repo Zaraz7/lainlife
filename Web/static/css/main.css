@@ -1737,153 +1737,102 @@ table.User {
 }
 
 /* меню вложений и информация о собеседнике */
-.im-peer-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, .5);
+.im-peer-dialog .ovk-diag-body {
+    padding: 0;
 }
 
-.im-peer-modal--box {
-    width: 360px;
-    max-height: 85vh;
-    display: flex;
-    flex-direction: column;
-    background: #fff;
-    border-radius: 4px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, .3);
-    overflow: hidden;
+.im-peer-dialog.im-peer-dialog-list .ovk-diag-body {
+    height: 440px;
 }
 
-.im-peer-modal--page {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    overflow-y: auto;
-    position: relative;
-}
-
-.im-peer-modal--page[hidden] {
+.im-peer-page[hidden],
+.im-peer-back[hidden] {
     display: none;
 }
 
-.im-peer-modal--close,
-.im-peer-modal--back {
-    display: flex;
-    padding: 4px;
-    color: #888;
-    cursor: pointer;
+.im-peer-dialog .ovk-diag-action .im-peer-back {
+    float: left;
+    margin-left: 0;
 }
 
-.im-peer-modal--close:hover,
-.im-peer-modal--back:hover {
-    color: #333;
-}
-
-.im-peer-modal--page[data-page="main"] > .im-peer-modal--close {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-}
-
-.im-peer-modal--head {
+.im-peer-head {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    padding: 24px 20px 16px;
-    background: #f7f8fa;
+    padding: 20px 20px 14px;
 }
 
-.im-peer-modal--avatar {
+.im-peer-avatar {
     display: block;
     width: 100px;
     border-radius: 2px;
 }
 
-.im-peer-modal--avatar.avatar-style-1,
-.im-peer-modal--avatar.avatar-style-2 {
+.im-peer-avatar.avatar-style-1,
+.im-peer-avatar.avatar-style-2 {
     height: 100px;
     object-fit: cover;
     object-position: top;
 }
 
-.im-peer-modal--avatar.avatar-style-2 {
+.im-peer-avatar.avatar-style-2 {
     border-radius: 50%;
 }
 
-.im-peer-modal--name {
+.im-peer-name {
     font-size: 13px;
     font-weight: bold;
     text-align: center;
 }
 
-.im-peer-modal--section {
-    padding: 6px 0;
-    border-top: 6px solid #f0f2f5;
+.im-peer-section {
+    padding: 5px 0;
+    border-top: 1px solid #e7e8ec;
 }
 
-.im-peer-modal--info {
-    padding: 6px 20px;
+.im-peer-info {
+    padding: 5px 20px;
 }
 
-.im-peer-modal--label {
+.im-peer-label {
     color: #888;
     font-size: 11px;
 }
 
-.im-peer-modal--row {
+.im-peer-row {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 8px 20px;
+    gap: 14px;
+    padding: 7px 20px;
     color: inherit;
     cursor: pointer;
     text-decoration: none;
 }
 
-.im-peer-modal--row:hover {
+.im-peer-row:hover {
     background: rgba(81, 129, 184, .08);
     text-decoration: none;
 }
 
-.im-peer-modal--row img {
+.im-peer-row img {
     width: 22px;
     height: 22px;
 }
 
-.im-peer-modal--danger span {
+.im-peer-danger span {
     color: #c3423c;
 }
 
-.im-peer-modal--bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 10px 10px 8px;
-    border-bottom: 1px solid #e7e8ec;
-}
-
-.im-peer-modal--title {
-    flex: 1;
-}
-
-.im-peer-modal--list {
-    height: 420px;
-    max-height: calc(85vh - 50px);
-    overflow-y: auto;
+.im-peer-list {
     padding: 6px;
-    box-sizing: border-box;
 }
 
-.im-peer-modal--list-photo,
-.im-peer-modal--list-gif {
+.im-peer-list-photo,
+.im-peer-list-gif {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    grid-auto-rows: 112px;
+    grid-auto-rows: 120px;
     gap: 3px;
     align-content: start;
 }
@@ -1900,7 +1849,7 @@ table.User {
     align-items: center;
     gap: 10px;
     padding: 6px;
-    border-radius: 3px;
+    border-radius: 2px;
     color: inherit;
     cursor: pointer;
     text-decoration: none;
@@ -1944,11 +1893,7 @@ table.User {
     font-size: 11px;
 }
 
-.im-peer-att--audio {
-    padding: 0 2px;
-}
-
-.im-peer-modal--empty {
+.im-peer-empty {
     grid-column: 1 / -1;
     padding: 40px 0;
     text-align: center;

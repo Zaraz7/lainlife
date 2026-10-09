@@ -1300,6 +1300,9 @@
                 blockTitle: {tr("addition_to_bl")},
                 yes:        {tr("yes")},
                 no:         {tr("no")},
+                title:      {tr("messenger_chat_info")},
+                back:       {tr("messenger_info_back")},
+                close:      {tr("close")},
             };
             const OXYGEN     = "/assets/packages/static/openvk/img/oxygen-icons/64x64/";
             const KIND_ICONS = {
@@ -1309,8 +1312,6 @@
                 audio: "mimetypes/audio-ac3.png",
                 gif:   "mimetypes/image-gif.png",
             };
-            const CLOSE_SVG = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
-            const BACK_SVG  = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>`;
 
             const renderAttachment = (kind, item) => {
                 switch(kind) {
@@ -1340,7 +1341,7 @@
             };
 
             const openPeerInfo = async () => {
-                if(document.querySelector(".im-peer-modal")) return;
+                if(document.querySelector(".im-peer-dialog")) return;
 
                 let info;
                 try {
@@ -1350,73 +1351,66 @@
                 }
 
                 const avatarStyle = Number(window.openvk?.avatar_style ?? 0);
-                const modal = document.createElement("div");
-                modal.className = "im-peer-modal";
-                modal.innerHTML = `
-                    <div class="im-peer-modal--box">
-                        <div class="im-peer-modal--page" data-page="main">
-                            <a class="im-peer-modal--close" title="${ escapeHtml(PEER_STR.cancel) }">${ CLOSE_SVG }</a>
-                            <div class="im-peer-modal--head">
-                                <a href="${ escapeHtml(info.link) }"><img class="im-peer-modal--avatar avatar-style-${ avatarStyle }" src="${ escapeHtml(info.avatar) }" alt="" /></a>
-                                <a class="im-peer-modal--name" href="${ escapeHtml(info.link) }">${ escapeHtml(info.name) }</a>
+                const msg = new CMessageBox({
+                    title: escapeHtml(PEER_STR.title),
+                    body: `
+                        <div class="im-peer-page" data-page="main">
+                            <div class="im-peer-head">
+                                <a href="${ escapeHtml(info.link) }"><img class="im-peer-avatar avatar-style-${ avatarStyle }" src="${ escapeHtml(info.avatar) }" alt="" /></a>
+                                <a class="im-peer-name" href="${ escapeHtml(info.link) }">${ escapeHtml(info.name) }</a>
                             </div>
                             ${ info.shortcode || info.birthday ? `
-                                <div class="im-peer-modal--section">
+                                <div class="im-peer-section">
                                     ${ info.shortcode ? `
-                                        <div class="im-peer-modal--info">
+                                        <div class="im-peer-info">
                                             <a href="${ escapeHtml(info.link) }">@${ escapeHtml(info.shortcode) }</a>
-                                            <div class="im-peer-modal--label">${ escapeHtml(PEER_STR.shortcode) }</div>
+                                            <div class="im-peer-label">${ escapeHtml(PEER_STR.shortcode) }</div>
                                         </div>` : "" }
                                     ${ info.birthday ? `
-                                        <div class="im-peer-modal--info">
+                                        <div class="im-peer-info">
                                             <div>${ escapeHtml(info.birthday) }</div>
-                                            <div class="im-peer-modal--label">${ escapeHtml(PEER_STR.birthday) }</div>
+                                            <div class="im-peer-label">${ escapeHtml(PEER_STR.birthday) }</div>
                                         </div>` : "" }
                                 </div>` : "" }
                             ${ info.counts.length ? `
-                                <div class="im-peer-modal--section">
+                                <div class="im-peer-section">
                                     ${ info.counts.map(c => `
-                                        <a class="im-peer-modal--row" data-kind="${ c.kind }" data-title="${ escapeHtml(c.title) }">
+                                        <a class="im-peer-row" data-kind="${ c.kind }" data-title="${ escapeHtml(c.title) }">
                                             <img src="${ OXYGEN + KIND_ICONS[c.kind] }" alt="" />
                                             <span>${ escapeHtml(c.label) }</span>
                                         </a>`).join("") }
                                 </div>` : "" }
-                            <div class="im-peer-modal--section">
-                                <a class="im-peer-modal--row" data-act="delete">
+                            <div class="im-peer-section">
+                                <a class="im-peer-row" data-act="delete">
                                     <img src="${ OXYGEN }places/user-trash.png" alt="" />
                                     <span>${ escapeHtml(PEER_STR.del) }</span>
                                 </a>
                                 ${ info.blocked !== null ? `
-                                    <a class="im-peer-modal--row im-peer-modal--danger" data-act="block">
+                                    <a class="im-peer-row im-peer-danger" data-act="block">
                                         <img src="${ OXYGEN }actions/im-ban-user.png" alt="" />
                                         <span>${ escapeHtml(info.blocked ? PEER_STR.unblock : PEER_STR.block) }</span>
                                     </a>` : "" }
                             </div>
                         </div>
-                        <div class="im-peer-modal--page" data-page="list" hidden>
-                            <div class="im-peer-modal--bar">
-                                <a class="im-peer-modal--back">${ BACK_SVG }</a>
-                                <b class="im-peer-modal--title"></b>
-                                <a class="im-peer-modal--close" title="${ escapeHtml(PEER_STR.cancel) }">${ CLOSE_SVG }</a>
-                            </div>
-                            <div class="im-peer-modal--list"></div>
-                        </div>
-                    </div>
-                `;
-                document.body.append(modal);
+                        <div class="im-peer-page im-peer-list" data-page="list" hidden></div>
+                    `,
+                    buttons: [escapeHtml(PEER_STR.close)],
+                    callbacks: [Function.noop],
+                });
 
-                const pages = {
-                    main: modal.querySelector('[data-page="main"]'),
-                    list: modal.querySelector('[data-page="list"]'),
-                };
-                const list = modal.querySelector(".im-peer-modal--list");
+                const node = msg.getNode();
+                node.addClass("im-peer-dialog");
 
-                const onKey = e => e.key === "Escape" && close();
-                const close = () => {
-                    modal.remove();
-                    document.removeEventListener("keydown", onKey);
-                };
-                document.addEventListener("keydown", onKey);
+                const root  = node.first();
+                const head  = root.querySelector(".ovk-diag-head");
+                const body  = root.querySelector(".ovk-diag-body");
+                const main  = root.querySelector('[data-page="main"]');
+                const list  = root.querySelector('[data-page="list"]');
+                const close = () => msg.close();
+
+                // «назад» слева от «закрыть», виден только в разделе вложений
+                const backBtn = u(`<button class="button im-peer-back" hidden>${ escapeHtml(PEER_STR.back) }</button>`).first();
+                root.querySelector(".ovk-diag-action").prepend(backBtn);
 
                 // подгрузка вложений выбранного типа при прокрутке
                 let current = null;
@@ -1432,39 +1426,52 @@
                         state.offset += res.items.length;
                         state.done = !res.more;
                         list.insertAdjacentHTML("beforeend", res.items.map(item => renderAttachment(state.kind, item)).join(""));
-                        if(state.offset === 0) list.innerHTML = `<div class="im-peer-modal--empty">${ escapeHtml(PEER_STR.empty) }</div>`;
+                        if(state.offset === 0) list.innerHTML = `<div class="im-peer-empty">${ escapeHtml(PEER_STR.empty) }</div>`;
                     } catch(e) {
                         state.done = true;
                         fastError(tr("messages_error_1"));
                     }
 
                     state.loading = false;
-                    if(!state.done && list.scrollHeight <= list.clientHeight) loadMore();
+                    if(!state.done && body.scrollHeight <= body.clientHeight) loadMore();
                 };
-                list.addEventListener("scroll", () => {
-                    if(list.scrollTop + list.clientHeight > list.scrollHeight - 100) loadMore();
+                body.addEventListener("scroll", () => {
+                    if(body.scrollTop + body.clientHeight > body.scrollHeight - 100) loadMore();
                 });
+
+                const showMain = () => {
+                    current = null;
+                    head.textContent = PEER_STR.title;
+                    list.hidden = true;
+                    main.hidden = false;
+                    backBtn.hidden = true;
+                    node.removeClass("im-peer-dialog-list");
+                };
 
                 const showKind = (kind, title) => {
                     current = { kind, offset: 0, loading: false, done: false };
-                    list.className = `im-peer-modal--list im-peer-modal--list-${ kind }`;
+                    head.textContent = title;
+                    list.className = `im-peer-page im-peer-list im-peer-list-${ kind }`;
                     list.innerHTML = "";
-                    list.scrollTop = 0;
-                    modal.querySelector(".im-peer-modal--title").textContent = title;
-                    pages.main.hidden = true;
-                    pages.list.hidden = false;
+                    main.hidden = true;
+                    list.hidden = false;
+                    backBtn.hidden = false;
+                    node.addClass("im-peer-dialog-list");
+                    body.scrollTop = 0;
                     loadMore();
                 };
+
+                backBtn.addEventListener("click", showMain);
 
                 const askDelete = () => {
                     close();
                     const name = escapeHtml(info.name);
-                    let body = PEER_STR.delText.replace("%NAME%", name);
+                    let text = PEER_STR.delText.replace("%NAME%", name);
                     if(!info.self) {
-                        body += `<br><br><label><input type="checkbox" id="im_peer_delete_for_all"> ${ PEER_STR.delForAll.replace("%NAME%", name) }</label>`;
+                        text += `<br><br><label><input type="checkbox" id="im_peer_delete_for_all"> ${ PEER_STR.delForAll.replace("%NAME%", name) }</label>`;
                     }
 
-                    MessageBox(PEER_STR.del, body, [PEER_STR.delBtn, PEER_STR.cancel], [async () => {
+                    MessageBox(PEER_STR.del, text, [PEER_STR.delBtn, PEER_STR.cancel], [async () => {
                         const fd = new FormData();
                         fd.set("hash", {$csrfToken});
                         fd.set("sel", PEER_SEL);
@@ -1498,19 +1505,11 @@
                     ]);
                 };
 
-                modal.addEventListener("click", e => {
-                    if(e.target === modal || e.target.closest(".im-peer-modal--close")) return close();
-                    if(e.target.closest(".im-peer-modal--back")) {
-                        current = null;
-                        pages.list.hidden = true;
-                        pages.main.hidden = false;
-                        return;
-                    }
-
-                    const row = e.target.closest(".im-peer-modal--row[data-kind]");
+                body.addEventListener("click", e => {
+                    const row = e.target.closest(".im-peer-row[data-kind]");
                     if(row) return showKind(row.dataset.kind, row.dataset.title);
 
-                    const act = e.target.closest(".im-peer-modal--row[data-act]");
+                    const act = e.target.closest(".im-peer-row[data-act]");
                     if(act) return act.dataset.act === "delete" ? askDelete() : toggleBlock(act);
 
                     const photo = e.target.closest(".im-peer-att--photo[data-id]");
@@ -1525,9 +1524,6 @@
                         close();
                         return OpenVideo(video.dataset.id.split("_"));
                     }
-
-                    // обычные ссылки уводят со страницы, окно закрываем
-                    if(e.target.closest("a[href]") && !e.target.closest(".audioEmbed")) close();
                 });
             };
 

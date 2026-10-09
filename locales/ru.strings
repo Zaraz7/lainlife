@@ -1380,6 +1380,7 @@
 "messenger_message_deleted" = "Сообщение удалено";
 "messenger_no_text" = "Без текста";
 "messenger_chat_info" = "Вложения и информация";
+"messenger_info_back" = "Назад";
 "messenger_info_shortcode" = "Короткий адрес";
 "messenger_info_birthday" = "День рождения";
 "messenger_info_empty" = "Здесь пока ничего нет";

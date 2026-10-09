@@ -1449,6 +1449,7 @@
 "messenger_message_deleted" = "Message deleted";
 "messenger_no_text" = "No text";
 "messenger_chat_info" = "Attachments and info";
+"messenger_info_back" = "Back";
 "messenger_info_shortcode" = "Username";
 "messenger_info_birthday" = "Birthday";
 "messenger_info_empty" = "Nothing here yet";

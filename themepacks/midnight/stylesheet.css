@@ -866,39 +866,22 @@ ul {
     background-color: rgba(122, 156, 196, .15);
 }
 
-.im-peer-modal--box {
-    background: #1e1a2b;
+.im-peer-section {
+    border-top-color: #2c2640;
 }
 
-.im-peer-modal--head {
-    background: #272138;
-}
-
-.im-peer-modal--section {
-    border-top-color: #15121f;
-}
-
-.im-peer-modal--bar {
-    border-bottom-color: #2c2640;
-}
-
-.im-peer-modal--close:hover,
-.im-peer-modal--back:hover {
-    color: #c6d2e3;
-}
-
-.im-peer-modal--row:hover,
+.im-peer-row:hover,
 .im-peer-att--row:hover {
     background: rgba(122, 156, 196, .1);
 }
 
-.im-peer-modal--label,
+.im-peer-label,
 .im-peer-att--meta,
-.im-peer-modal--empty {
+.im-peer-empty {
     color: #8b9ab5;
 }
 
-.im-peer-modal--danger span {
+.im-peer-danger span {
     color: #e0605a !important;
 }
 
