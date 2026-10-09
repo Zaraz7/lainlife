@@ -1736,9 +1736,16 @@ table.User {
     opacity: 1;
 }
 
-/* смайлики ВК в тексте */
+/* смайлики ВК в тексте; размер не даём перебить общими правилами для span (например, в сообщениях) */
 .emoji {
     cursor: inherit;
+}
+
+span.emoji.emoji {
+    display: inline-block !important;
+    width: 16px !important;
+    height: 16px !important;
+    overflow: hidden !important;
 }
 
 /* меню вложений и информация о собеседнике */
