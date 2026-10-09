@@ -601,18 +601,24 @@ final class MessengerPresenter extends OpenVKPresenter
     {
         $this->assertUserLoggedIn();
 
-        $correspondences = iterator_to_array($this->messages->getCorrespondencies($this->user->identity, 1));
+        $perPage  = 30;
+        $page     = max(1, (int) ($this->queryParam("p") ?? 1));
+        $archived = (bool) $this->queryParam("archived");
+
         $result = [];
-        foreach ($correspondences as $cor) {
+        foreach ($this->messages->getCorrespondencies($this->user->identity, $page, $perPage, null, $archived) as $cor) {
             $recipient = $cor->getCorrespondents()[1];
             $result[] = [
-                "id"     => $recipient->getId(),
+                "id"     => $recipient instanceof User ? $recipient->getId() : -$recipient->getId(),
                 "name"   => $recipient->getCanonicalName(),
                 "avatar" => $recipient->getAvatarUrl('miniscule'),
             ];
         }
 
         header("Content-Type: application/json");
-        exit(json_encode($result));
+        exit(json_encode([
+            "items" => $result,
+            "more"  => $page * $perPage < $this->messages->getCorrespondenciesCount($this->user->identity, $archived),
+        ]));
     }
 }

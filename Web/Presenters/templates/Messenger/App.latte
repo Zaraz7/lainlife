@@ -735,30 +735,57 @@
                     .map(m => ({ uuid: m.uuid, name: m.sender.name, text: window.plainText(m.text) }));
                 if(msgs.length === 0) return;
 
-                let dialogs = [];
-                try {
-                    dialogs = await (await fetch("/im/api/dialogs.json")).json();
-                } catch(e) {
-                    return fastError(tr("messages_error_1"));
-                }
+                const myId = {$thisUser->getId()};
+                const box  = MessageBox(window.MSG_STR.forwardTo, `<div class="fwd-dialogs"></div>`, [{tr("cancel")}], [Function.noop], true);
+                const list = box.getNode().find(".fwd-dialogs").first();
 
-                const myId  = {$thisUser->getId()};
-                const items = dialogs.map(d => `
-                    <a class="fwd-dialogs--item" data-id="${ d.id }">
-                        <img src="${ escapeHtml(d.avatar) }" alt="" />
-                        <span>${ escapeHtml(d.id === myId ? window.MSG_STR.saved : d.name) }</span>
-                    </a>
-                `).join("");
+                // сначала обычные чаты, потом архив, подгрузка при прокрутке
+                let page = 1, archived = 0, loading = false, done = false;
+                const loadMore = async () => {
+                    if(loading || done) return;
+                    loading = true;
 
-                const body = `<div class="fwd-dialogs">${ items || window.MSG_STR.noDialogs }</div>`;
-                const box  = MessageBox(window.MSG_STR.forwardTo, body, [{tr("cancel")}], [Function.noop], true);
+                    try {
+                        const res = await (await fetch(`/im/api/dialogs.json?p=${ page }&archived=${ archived }`)).json();
+                        list.insertAdjacentHTML("beforeend", res.items.map(d => `
+                            <a class="fwd-dialogs--item" data-id="${ d.id }">
+                                <img src="${ escapeHtml(d.avatar) }" alt="" />
+                                <span>${ escapeHtml(d.id === myId ? window.MSG_STR.saved : d.name) }</span>
+                            </a>
+                        `).join(""));
 
-                u(box.getNode()).find(".fwd-dialogs--item").on("click", e => {
-                    const id = Number(e.currentTarget.dataset.id);
+                        if(res.more) {
+                            page++;
+                        } else if(!archived) {
+                            archived = 1;
+                            page = 1;
+                        } else {
+                            done = true;
+                            if(!list.children.length) list.textContent = window.MSG_STR.noDialogs;
+                        }
+                    } catch(e) {
+                        done = true;
+                        fastError(tr("messages_error_1"));
+                    }
+
+                    loading = false;
+                    if(!done && list.scrollHeight <= list.clientHeight) loadMore();
+                };
+
+                list.addEventListener("scroll", () => {
+                    if(list.scrollTop + list.clientHeight > list.scrollHeight - 50) loadMore();
+                });
+                loadMore();
+
+                list.addEventListener("click", e => {
+                    const item = e.target.closest(".fwd-dialogs--item");
+                    if(!item) return;
+
+                    const id = Number(item.dataset.id);
                     box.close();
                     window.selectedMsgs.removeAll();
 
-                    if(id === {$correspondent->getId()}) {
+                    if(id === {$correspondent instanceof \openvk\Web\Models\Entities\Club ? -$correspondent->getId() : $correspondent->getId()}) {
                         window.forwardMsgs(msgs);
                         u("textarea[name=message]").nodes[0]?.focus();
                         return;
