@@ -8,7 +8,7 @@
      data-sel="{$coresp->getID()}"
      data-name="{$isSaved ? tr('saved_messages') : $recipient->getCanonicalName()}"
      data-self="{(int) $isSaved}"
-     onmousedown="if(event.button === 0 && !this.classList.contains('pinned')) window.location.assign({$coresp->getURL()});" >
+     onmousedown="if(event.button === 0 && !this.classList.contains('pinned')) window.router.navigate({$coresp->getURL()});" >
 
     <div class="crp-entry--image">
         {if $isSaved}

@@ -271,7 +271,7 @@
                     e.preventDefault();
                     if(justDragged) return;
 
-                    location.assign(entry.dataset.imUrl);
+                    window.router.navigate(entry.dataset.imUrl);
                 }, true);
 
                 list.addEventListener("pointerup", finishDrag);

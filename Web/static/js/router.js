@@ -39,8 +39,15 @@ window.router = new class {
             _t_scr.textContent = script.textContent
         }   
 
+        // внешний скрипт выполняется асинхронно, следующие ждут его загрузки
+        const loaded = script.src ? new Promise(resolve => {
+            _t_scr.onload  = resolve
+            _t_scr.onerror = resolve
+        }) : Promise.resolve()
+
         //parent.children[idx].before(script)
         document.body.appendChild(_t_scr)
+        return loaded
     }
 
     __clearScripts() {
@@ -57,7 +64,7 @@ window.router = new class {
         })
     }
 
-    __appendPage(parsed_content) {
+    async __appendPage(parsed_content) {
         const scripts_to_append = []
         const page_body = u(parsed_content.querySelector('.page_body'))
         const sidebar = u(parsed_content.querySelector('.sidebar'))
@@ -119,9 +126,9 @@ window.router = new class {
 
         window.setBaseTitle(parsed_content.title)
 
-        scripts_to_append.forEach(append_me => {
-            this.__appendScript(append_me)
-        })
+        for(const append_me of scripts_to_append) {
+            await this.__appendScript(append_me)
+        }
     }
 
     applyTweaks() {
@@ -178,6 +185,12 @@ window.router = new class {
         }
     }
 
+    // переход через ajax, если он разрешён
+    navigate(url) {
+        const full = new URL(url, location.href).href
+        this.checkUrl(full) ? this.route({ url: full }) : location.assign(full)
+    }
+
     checkUrl(url) {
         if(window.openvk.disable_ajax == 1) {
             return false
@@ -202,7 +215,6 @@ window.router = new class {
         if(url.indexOf('#close') != -1) {
             return false
         }
-
         return true
     }
 
@@ -266,7 +278,7 @@ window.router = new class {
         u('body').removeClass('ajax_request_made')
 
         try {
-            this.__appendPage(parsed_content)
+            await this.__appendPage(parsed_content)
             await this.__integratePage()
         } catch(e) {
             console.error(e)
@@ -445,7 +457,7 @@ u(document).on('submit', 'form', async (e) => {
         history.pushState({'from_router': 1}, '', __new_url)
     }
     
-    window.router.__appendPage(parsed_content)
+    await window.router.__appendPage(parsed_content)
     window.router.__closeMsgs()
     await window.router.__integratePage()
 
