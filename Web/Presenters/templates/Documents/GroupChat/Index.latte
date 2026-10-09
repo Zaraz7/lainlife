@@ -25,7 +25,7 @@
                     <a href="{$chat->getURL()}">{$chat->getName()}</a><br/>
                     <span>{$chat->getParticipantsCount()} участников</span>
                 </div>
-                <div n:class="crp-entry--message, $lastMsg && $lastMsg->getUnreadState() ? unread">
+                <div n:class="crp-entry--message, $lastMsg && $lastMsg->isUnread() ? unread">
                     {if $lastMsg}
                     {var $_author = $lastMsg->getSender()}
 

@@ -27,7 +27,7 @@
         {/if}
         <span>{$lastMsg->getSendTimeHumanized()}</span>
     </div>
-    <div n:class="crp-entry--message, !$isSaved && $lastMsg->getUnreadState() ? unread">
+    <div n:class="crp-entry--message, !$isSaved && $lastMsg->isUnread() ? unread">
         {var $_author = $lastMsg->getSender()}
 
         <div class="crp-entry--message---av" n:if="!$isSaved && $_author->getId() === $thisUser->getId()">
