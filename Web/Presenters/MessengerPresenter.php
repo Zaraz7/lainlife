@@ -44,25 +44,6 @@ final class MessengerPresenter extends OpenVKPresenter
         }
     }
 
-    private function isMessageBetween(Message $msg, object $a, object $b): bool
-    {
-        $rec  = $msg->getRecord();
-        $from = [$rec->sender_type, (int) $rec->sender_id];
-        $to   = [$rec->recipient_type, (int) $rec->recipient_id];
-        $a    = [get_class($a), $a->getId()];
-        $b    = [get_class($b), $b->getId()];
-
-        return ($from === $a && $to === $b) || ($from === $b && $to === $a);
-    }
-
-    private function isMessageParticipant(Message $msg): bool
-    {
-        $rec = $msg->getRecord();
-        $me  = [User::class, $this->user->id];
-
-        return [$rec->sender_type, (int) $rec->sender_id] === $me || [$rec->recipient_type, (int) $rec->recipient_id] === $me;
-    }
-
     // ответить можно только на живое сообщение из этого же диалога
     private function getReplyTarget(object $correspondent): ?Message
     {
@@ -72,7 +53,7 @@ final class MessengerPresenter extends OpenVKPresenter
         }
 
         $msg = $this->messages->get($id);
-        if (!$msg || $msg->isDeleted() || !$this->isMessageBetween($msg, $this->user->identity, $correspondent)) {
+        if (!$msg || $msg->isDeleted() || !$msg->isBetween($this->user->identity, $correspondent)) {
             header("HTTP/1.1 403 Forbidden");
             exit();
         }
@@ -92,7 +73,7 @@ final class MessengerPresenter extends OpenVKPresenter
         $messages = [];
         foreach ($ids as $id) {
             $msg = $this->messages->get($id);
-            if (!$msg || $msg->isDeleted() || !$this->isMessageParticipant($msg)) {
+            if (!$msg || $msg->isDeleted() || !$msg->hasParticipant($this->user->identity)) {
                 header("HTTP/1.1 403 Forbidden");
                 exit();
             }

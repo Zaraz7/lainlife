@@ -149,6 +149,20 @@ class Message extends RowModel
         }
     }
 
+    function hasParticipant(RowModel $entity): bool
+    {
+        $rec = $this->getRecord();
+        $me  = [get_class($entity), $entity->getId()];
+
+        return [$rec->sender_type, (int) $rec->sender_id] === $me || [$rec->recipient_type, (int) $rec->recipient_id] === $me;
+    }
+
+    function isBetween(RowModel $a, RowModel $b): bool
+    {
+        return $this->hasParticipant($a) && $this->hasParticipant($b)
+            && ($a->getId() !== $b->getId() || get_class($a) !== get_class($b) || $this->getRecord()->sender_id === $this->getRecord()->recipient_id);
+    }
+
     function isForwarded(): bool
     {
         return DatabaseConnection::i()->getContext()->table("message_forwards")->where("message", $this->getId())->count("*") > 0;
