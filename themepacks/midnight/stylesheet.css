@@ -889,3 +889,9 @@ ul {
     background: #2c2640;
     color: #a3b8d9;
 }
+
+.messenger-app--messages---message .msg-attach-j-audio .audioEmbed,
+.im-peer-att--audio .audioEmbed {
+    background: rgba(255, 255, 255, .02);
+    border-color: rgba(255, 255, 255, .05);
+}

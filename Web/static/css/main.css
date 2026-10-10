@@ -5321,35 +5321,129 @@ hr {
     display: none !important;
 }
 
-/* Audio player in messages */
-.messenger-app--messages---message .audioEmbed,
-.messenger-app--messages---message .audioEntry,
-.messenger-app--messages---message .audioEntryWrapper {
-    width: 100% !important;
-    max-width: 100% !important;
+/* аудио в сообщениях и в меню вложений, как в openvk: компактная строка 35px */
+.messenger-app--messages---message .msg-attach-j-audio .audioEmbed,
+.im-peer-att--audio .audioEmbed {
+    max-width: 440px;
+    width: 100%;
+    margin: 4px 0;
+    border-radius: 3px;
+    box-sizing: border-box;
+    background: rgba(0, 0, 0, .02);
+    border: 1px solid rgba(0, 0, 0, .03);
+    overflow: hidden;
+}
+
+.im-peer-att--audio .audioEmbed {
+    max-width: 100%;
+    margin: 2px 0;
+}
+
+.messenger-app--messages---message .msg-attach-j-audio .audioEmbed .audioEntry:hover,
+.im-peer-att--audio .audioEmbed .audioEntry:hover {
+    background: rgba(0, 0, 0, .04);
+}
+
+.messenger-app--messages---message .msg-attach-j-audio .audioEmbed .audioEntryWrapper,
+.im-peer-att--audio .audioEmbed .audioEntryWrapper {
+    display: grid;
+    grid-template-columns: 16px 1fr auto;
+    align-items: center;
+    gap: 8px;
+    height: 35px;
+    padding: 0 9px;
     box-sizing: border-box;
 }
 
-/* Fix audio player in messenger */
-.msg-attach-j-audio .audioEntry {
-    max-height: unset !important;
-    min-height: unset !important;
-    background: var(--color-elevation-card) !important;
+/* общее правило мессенджера растягивает span на всю ширину */
+.messenger-app--messages---message .msg-attach-j-audio .audioEmbed span,
+.im-peer-att--audio .audioEmbed span {
+    display: inline;
+    width: auto;
+    height: auto;
+    overflow: visible;
 }
-.msg-attach-j-audio .audioEntry .buttons {
-    display: flex !important;
+
+.messenger-app--messages---message .msg-attach-j-audio .audioEmbed .status,
+.im-peer-att--audio .audioEmbed .status {
+    min-width: 0;
+    overflow: hidden;
+    height: 16px;
+    line-height: 16px;
 }
-.msg-attach-j-audio .audioEntry .audioEntryWrapper {
-    height: unset !important;
-    padding: 6px 8px !important;
-    gap: 6px !important;
+
+.messenger-app--messages---message .msg-attach-j-audio .audioEmbed .status .mediaInfo,
+.im-peer-att--audio .audioEmbed .status .mediaInfo,
+.messenger-app--messages---message .msg-attach-j-audio .audioEmbed .status:hover .mediaInfo,
+.im-peer-att--audio .audioEmbed .status:hover .mediaInfo {
+    position: static;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+    display: block;
+    line-height: 16px;
+    height: 16px;
 }
-.msg-attach-j-audio .audioEntry .status {
-    height: unset !important;
-    margin-top: 0 !important;
+
+.messenger-app--messages---message .msg-attach-j-audio .audioEmbed .status .mediaInfo .info,
+.im-peer-att--audio .audioEmbed .status .mediaInfo .info,
+.messenger-app--messages---message .msg-attach-j-audio .audioEmbed .status:hover .mediaInfo .info,
+.im-peer-att--audio .audioEmbed .status:hover .mediaInfo .info {
+    width: auto;
+    display: inline;
+    white-space: nowrap;
 }
-.msg-attach-j-audio .audioEntry .subTracks {
-    padding: 4px 8px !important;
+
+.messenger-app--messages---message .msg-attach-j-audio .audioEmbed .mini_timer,
+.im-peer-att--audio .audioEmbed .mini_timer {
+    min-width: 28px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    position: relative;
+}
+
+.messenger-app--messages---message .msg-attach-j-audio .audioEmbed .mini_timer .nobold,
+.im-peer-att--audio .audioEmbed .mini_timer .nobold {
+    font-size: 10px;
+    line-height: 16px;
+    height: 16px;
+    text-align: right;
+    display: block;
+    color: #777;
+}
+
+.messenger-app--messages---message .msg-attach-j-audio .audioEmbed .audioEntry:hover .mini_timer .hideOnHover,
+.im-peer-att--audio .audioEmbed .audioEntry:hover .mini_timer .hideOnHover {
+    display: none !important;
+}
+
+.messenger-app--messages---message .msg-attach-j-audio .audioEmbed .audioEntry .buttons,
+.im-peer-att--audio .audioEmbed .audioEntry .buttons {
+    display: none;
+}
+
+.messenger-app--messages---message .msg-attach-j-audio .audioEmbed .audioEntry:hover .buttons,
+.im-peer-att--audio .audioEmbed .audioEntry:hover .buttons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: static;
+    height: 16px;
+}
+
+/* в чате только добавить/убрать и скачать */
+.messenger-app--messages---message .msg-attach-j-audio .audioEmbed .buttons .edit-icon,
+.im-peer-att--audio .audioEmbed .buttons .edit-icon,
+.messenger-app--messages---message .msg-attach-j-audio .audioEmbed .buttons .report-icon,
+.im-peer-att--audio .audioEmbed .buttons .report-icon,
+.messenger-app--messages---message .msg-attach-j-audio .audioEmbed .buttons .add-icon-group,
+.im-peer-att--audio .audioEmbed .buttons .add-icon-group,
+.messenger-app--messages---message .msg-attach-j-audio .audioEmbed .buttons .remove-icon-group,
+.im-peer-att--audio .audioEmbed .buttons .remove-icon-group {
+    display: none;
 }
 
 .collapsed_text {
