@@ -33,7 +33,7 @@ trait TRichText
     }
 
     /**
-     * Converts :codename: into the classic "kolobki" smiley GIFs.
+     * Converts :codename: into the classic "kolobki" smiley GIFs and :ok_codename: into Odnoklassniki smileys.
      *
      * Unlike the old upstream implementation (which matched bare words like
      * "good"/"this"/"sad" anywhere in the text - silently mangling normal
@@ -46,7 +46,7 @@ trait TRichText
      * a third of the hardcoded names have no matching file), so hardcoding it
      * again would just recreate the same broken-image mess.
      */
-    private function formatKolobki(string $text): string
+    private function formatSmiles(string $text): string
     {
         $contentColumn = property_exists($this, "overrideContentColumn") ? $this->overrideContentColumn : "content";
         if (iconv_strlen($this->getRecord()->{$contentColumn}) > OPENVK_ROOT_CONF["openvk"]["preferences"]["wall"]["postSizes"]["emojiProcessingLimit"]) {
@@ -61,7 +61,24 @@ trait TRichText
             }
         }
 
-        return preg_replace_callback("%:([A-Za-z0-9_-]++):%", function (array $m) use ($available): string {
+        // смайлы Одноклассников в порядке ячеек спрайта img/ok_smiles.png (8x4), тот же список в al_emoji.js
+        static $ok = null;
+        $ok ??= array_flip([
+            "grin", "zany", "slight_smile", "sad", "tongue", "sunglasses", "smiley", "angry",
+            "flushed", "shock", "heart_eyes", "unamused", "mad", "pleading", "sleeping", "wink",
+            "robot", "raised_eyebrow", "monocle", "tired", "unamused2", "rolling_eyes", "woozy", "yawn",
+            "unamused3", "happy_looking_up",
+        ]);
+
+        return preg_replace_callback("%:([A-Za-z0-9_-]++):%", function (array $m) use ($available, $ok): string {
+            if (str_starts_with($m[1], "ok_") && isset($ok[substr($m[1], 3)])) {
+                $i = $ok[substr($m[1], 3)];
+                $x = round(($i % 8) * 100 / 7, 3);
+                $y = round(intdiv($i, 8) * 100 / 3, 3);
+
+                return "<span class='ok-smile' style='background-position: $x% $y%'>:$m[1]:</span>";
+            }
+
             if (!isset($available[$m[1]])) {
                 return $m[0];
             }
@@ -206,7 +223,7 @@ trait TRichText
                 }, $text);
 
                 $text = $this->formatEmojis($text);
-                $text = $this->formatKolobki($text);
+                $text = $this->formatSmiles($text);
                 $text = $this->formatRichText($text);
             }
 

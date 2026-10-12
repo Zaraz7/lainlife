@@ -1748,6 +1748,19 @@ span.emoji.emoji {
     overflow: hidden !important;
 }
 
+/* смайлы Одноклассников: спрайт 8x4 из ячеек 64px, ужатый до строки текста */
+span.ok-smile.ok-smile {
+    display: inline-block !important;
+    width: 18px !important;
+    height: 18px !important;
+    margin: -1px 1px;
+    overflow: hidden !important;
+    vertical-align: middle;
+    background: url("/assets/packages/static/openvk/img/ok_smiles.png") no-repeat;
+    background-size: 800% 400%;
+    font-size: 0;
+}
+
 /* меню вложений и информация о собеседнике */
 .im-peer-dialog .ovk-diag-body {
     padding: 0;
@@ -5687,6 +5700,17 @@ hr {
     font-size: 0;
 }
 
+.emoji-picker--item.ok-smile-item {
+    width: 40px;
+    height: 40px;
+}
+
+.emoji-picker--item span.ok-smile.ok-smile {
+    width: 32px !important;
+    height: 32px !important;
+    margin: 0;
+}
+
 .emoji-picker--item:hover,
 .emoji-picker--sets a:hover {
     background-color: #edf1f5;
@@ -5732,6 +5756,7 @@ hr {
 }
 
 .emoji-picker--sets .emoji,
+.emoji-picker--sets .ok-smile,
 .emoji-picker--sets img {
     max-width: 20px;
     max-height: 24px;
@@ -5741,6 +5766,8 @@ hr {
 
 .emoji-picker--sets a:hover .emoji,
 .emoji-picker--sets a.active .emoji,
+.emoji-picker--sets a:hover .ok-smile,
+.emoji-picker--sets a.active .ok-smile,
 .emoji-picker--sets a:hover img,
 .emoji-picker--sets a.active img {
     filter: none;

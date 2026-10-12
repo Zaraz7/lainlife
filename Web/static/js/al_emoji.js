@@ -1,6 +1,6 @@
 // Панель смайликов как в телеграме: по кнопке .js-emoji-picker открывается окошко
 // с вкладками. В "Эмодзи" одной лентой идут наборы - недавние, обычные эмодзи
-// (по категориям) и колобки, а снизу полоска наборов для быстрого перехода.
+// (по категориям), колобки и смайлы Одноклассников, а снизу полоска наборов для быстрого перехода.
 // В "Стикерах" так же: часто используемые и установленные наборы, справа внизу - магазин.
 // В "GIF" - гифки из документов пользователя и поиск по GIF-сервису.
 // Какие вкладки показать, задаёт data-tabs у кнопки (в чатах - все три),
@@ -30,6 +30,14 @@
         "yes", "yes3", "yess", "yu",
     ];
 
+    // смайлы Одноклассников в порядке ячеек спрайта img/ok_smiles.png (8x4), тот же список в TRichText::formatSmiles
+    const OK_SMILES = [
+        "grin", "zany", "slight_smile", "sad", "tongue", "sunglasses", "smiley", "angry",
+        "flushed", "shock", "heart_eyes", "unamused", "mad", "pleading", "sleeping", "wink",
+        "robot", "raised_eyebrow", "monocle", "tired", "unamused2", "rolling_eyes", "woozy", "yawn",
+        "unamused3", "happy_looking_up",
+    ];
+
     const CATEGORY_ICONS = {
         smileys:  "😀",
         animals:  "🐻",
@@ -50,11 +58,19 @@
     const STICKER_RECENT_MAX = 20;
 
     const KOLOBOK_RE = /^:([A-Za-z0-9_-]+):$/;
+    const OK_SMILE_RE = /^:ok_([a-z0-9_]+):$/;
 
     // тот же класс спрайта ВК, что строит TRichText::formatEmojis
     const emojiSpan = emoji => emoji_span(emoji);
 
     const kolobokUrl = code => `/assets/packages/static/openvk/img/kolobki/${code}.gif`;
+
+    // та же разметка, что строит TRichText::formatSmiles
+    const okSmileSpan = name => {
+        const i = OK_SMILES.indexOf(name);
+
+        return `<span class="ok-smile" style="background-position: ${+((i % 8) * 100 / 7).toFixed(3)}% ${+(Math.floor(i / 8) * 100 / 3).toFixed(3)}%"></span>`;
+    };
 
     const emojiSets = () => Object.keys(CATEGORY_ICONS).map(cat => ({
         id: cat,
@@ -63,7 +79,7 @@
 
     let known = null;
     const isKnown = value => {
-        if(!known) known = new Set([...emojiSets().flatMap(s => s.items), ...KOLOBKI.map(k => `:${k}:`)]);
+        if(!known) known = new Set([...emojiSets().flatMap(s => s.items), ...KOLOBKI.map(k => `:${k}:`), ...OK_SMILES.map(s => `:ok_${s}:`)]);
 
         return known.has(value);
     };
@@ -86,6 +102,11 @@
 
     // колобки грузятся, только когда до них доскроллили
     const itemHTML = value => {
+        // :ok_код: подходит и под KOLOBOK_RE, поэтому проверяется первым
+        const ok = value.match(OK_SMILE_RE);
+        if(ok)
+            return `<a class="emoji-picker--item ok-smile-item" data-value="${value}" title="${value}">${okSmileSpan(ok[1])}</a>`;
+
         const kolobok = value.match(KOLOBOK_RE);
         if(kolobok)
             return `<a class="emoji-picker--item kolobok" data-value="${value}" title="${value}"><img data-src="${kolobokUrl(kolobok[1])}" alt="${value}" /></a>`;
@@ -525,6 +546,7 @@
                     ${sectionHTML("recent", tr("emoji_picker_recent"), [])}
                     ${sets.map(s => sectionHTML(s.id, tr(`emoji_category_${s.id}`), s.items)).join("")}
                     ${sectionHTML("kolobki", tr("emoji_picker_kolobki"), KOLOBKI.map(k => `:${k}:`))}
+                    ${sectionHTML("ok", tr("emoji_picker_ok"), OK_SMILES.map(s => `:ok_${s}:`))}
                 </div>
                 <div class="emoji-picker--sets">
                     <a data-section="recent" title="${escapeHtml(tr("emoji_picker_recent"))}"><span class="emoji-picker--icon-recent"></span></a>
@@ -532,6 +554,7 @@
                         ${sets.map(s => `<a data-section="${s.id}" title="${escapeHtml(tr(`emoji_category_${s.id}`))}">${emojiSpan(CATEGORY_ICONS[s.id])}</a>`).join("")}
                     </div>
                     <a data-section="kolobki" title="${escapeHtml(tr("emoji_picker_kolobki"))}"><img src="${kolobokUrl("smile")}" alt="" /></a>
+                    <a data-section="ok" title="${escapeHtml(tr("emoji_picker_ok"))}">${okSmileSpan("smiley")}</a>
                 </div>
             </div>
             <div class="emoji-picker--pane" data-pane="stickers">
