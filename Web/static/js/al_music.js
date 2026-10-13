@@ -96,6 +96,66 @@ class AudioTrack {
     }
 }
 
+// скины плавающего плеера, остальные регистрируются в al_music_skins.js
+window.ajaxPlayerSkins = Object.assign(window.ajaxPlayerSkins ?? {}, {
+    default: {
+        queueParent: '#ajax_audio_player #aj_player',
+        cancel: '#aj_player_track .selectableTrack, #aj_player_volume .selectableTrack, #aj_player_buttons',
+        template: () => `
+            <div id='ajax_audio_player' class='ctx_place'>
+                <div id='aj_player'>
+                    <div id='aj_player_internal_controls'>
+                        <div id='aj_player_play'>
+                            <div id='aj_player_play_btn'></div>
+                        </div>
+                        <div id='aj_player_track'>
+                            <div id='aj_player_track_name'>
+                                <a id='aj_player_track_title' class='noOverflow' style='max-width: 300px;'>
+                                    <b>Unknown</b>
+                                    <div class="tire">—</div>
+                                    <span>Untitled</span>
+                                </a>
+
+                                <span id='aj_time' style='min-width: 28px;'>00:00</span>
+                            </div>
+                            <div id='aj_player_track_length'>
+                                <div class="selectableTrack">
+                                    <div style='width: 97%;position: relative;'>
+                                        <div class="slider"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='aj_player_volume'>
+                            <div class="selectableTrack">
+                                <div style='width: 75%;position: relative;'>
+                                    <div class="slider"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='aj_player_buttons'>
+                            <div id='aj_player_previous'></div>
+                            <div id='aj_player_repeat'></div>
+                            <div id='aj_player_next'></div>
+                        </div>
+                    </div>
+                    <div id='aj_player_close_btn'></div>
+                </div>
+            </div>
+        `,
+        bind: (node) => {
+            node.find('#aj_player_close_btn').on('click', (e) => {
+                window.player.ajClose()
+            })
+            node.find('#aj_time').on('click', (e) => {
+                if(window.player && window.player.context && window.player.context.object) {
+                    window.router.route(window.player.context.object.url)
+                }
+            })
+        },
+    },
+})
+
 // so if someone reads this. Its better to split class to AudioTrack -> AudioContext -> AudioPlayer -> AudioPlayerViewModel, AjaxPlayerViewModel and BigPlayerViewModel.
 window.player = new class {
     context = {
@@ -135,6 +195,20 @@ window.player = new class {
 
     get ajaxPlayer() {
         return u('#ajax_audio_player')
+    }
+
+    // на мобильных плеер растянут внизу экрана, скины там не применяются
+    get ajSkinName() {
+        const name = localStorage.getItem('audio.skin')
+        if(!window.ajaxPlayerSkins[name] || (window.isMobile && isMobile())) {
+            return 'default'
+        }
+
+        return name
+    }
+
+    get ajSkin() {
+        return window.ajaxPlayerSkins[this.ajSkinName]
     }
 
     get uiPlayer() {
@@ -193,6 +267,10 @@ window.player = new class {
                     this.ajaxPlayer.find('#aj_player_track_name #aj_time').html(fmtTime(time))
                 }
             }
+
+            if(this.ajaxPlayer.length > 0) {
+                this.ajSkin.time?.(time)
+            }
         }
 
         this.audioPlayer.onvolumechange = () => {
@@ -219,7 +297,11 @@ window.player = new class {
                     this.ajaxPlayer.find('#aj_player_volume .slider').attr('style', `left:${ ps}%`)
                 }
             }
-            
+
+            if(this.ajaxPlayer.length > 0) {
+                this.ajSkin.volume?.(volume)
+            }
+
             localStorage.setItem('audio.volume', volume)
         }
 
@@ -784,6 +866,7 @@ window.player = new class {
         if (this.ajaxPlayer_CheckIfBlockHasBeenShown()) {
             u(".aj_track.selected").removeClass("selected")
             this.ajaxPlayer.find(`.aj_track[data-id='${window.player.current_track_id}']`).addClass("selected")
+            this.ajSkin.update?.()
         }
     }
 
@@ -867,10 +950,11 @@ window.player = new class {
 
     ajaxPlayer_AddTrackBlockToTheQueueBlock(item) {
         const track = new AudioTrack(item)
+        const num = this.tracks.findIndex(s => s.id == item.id) + 1
 
-        u("#ajax_audio_player #aj_player #aj_player_tracks").append(`
+        u("#ajax_audio_player #aj_player #aj_player_tracks").append(this.ajSkin.queueRow?.(track, num) ?? `
             <div class="aj_track" data-id="${track.getId()}">
-                <span class="num">${this.tracks.findIndex(s => s.id == item.id) + 1}</span>
+                <span class="num">${num}</span>
                 <b> ${ovk_proc_strtr(escapeHtml(track.getName()), 50)}</b>
             </div>
         `)
@@ -881,7 +965,7 @@ window.player = new class {
         if(u("#ajax_audio_player #aj_player_tracks").length > 0) {return}
         if(u("#ajax_audio_player").length == 0) {return}
 
-        u("#ajax_audio_player #aj_player").append(`
+        u(this.ajSkin.queueParent).append(`
             <div id="aj_player_tracks"></div>
         `)
 
@@ -901,62 +985,24 @@ window.player = new class {
     ajCreate() {
         const previous_time_x = localStorage.getItem('audio.lastX') ?? 100
         const previous_time_y = localStorage.getItem('audio.lastY') ?? scrollY
-        const miniplayer_template = u(`
-            <div id='ajax_audio_player' class='ctx_place'>
-                <div id='aj_player'>
-                    <div id='aj_player_internal_controls'>
-                        <div id='aj_player_play'>
-                            <div id='aj_player_play_btn'></div>
-                        </div>
-                        <div id='aj_player_track'>
-                            <div id='aj_player_track_name'>
-                                <a id='aj_player_track_title' class='noOverflow' style='max-width: 300px;'>
-                                    <b>Unknown</b>
-                                    <div class="tire">—</div>
-                                    <span>Untitled</span>
-                                </a>
-
-                                <span id='aj_time' style='min-width: 28px;'>00:00</span>
-                            </div>
-                            <div id='aj_player_track_length'>
-                                <div class="selectableTrack">
-                                    <div style='width: 97%;position: relative;'>
-                                        <div class="slider"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div id='aj_player_volume'>
-                            <div class="selectableTrack">
-                                <div style='width: 75%;position: relative;'>
-                                    <div class="slider"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div id='aj_player_buttons'>
-                            <div id='aj_player_previous'></div>
-                            <div id='aj_player_repeat'></div>
-                            <div id='aj_player_next'></div>
-                        </div>
-                    </div>
-                    <div id='aj_player_close_btn'></div>
-                </div>
-            </div>
-        `)
+        const skin_name = this.ajSkinName
+        const skin = this.ajSkin
+        const miniplayer_template = u(skin.template())
+        miniplayer_template.addClass(`skin_${skin_name}`)
         u('body').append(miniplayer_template)
         miniplayer_template.attr('style', `left:${previous_time_x}px;top:${previous_time_y}px`)
-        miniplayer_template.find('#aj_player_close_btn').on('click', (e) => {
-            this.ajClose()
-        })
-        miniplayer_template.find('#aj_time').on('click', (e) => {
-            if(window.player && window.player.context && window.player.context.object) {
-                window.router.route(window.player.context.object.url)
-            }
-        })
+        skin.bind(miniplayer_template)
+
+        // у скинов разный размер, плеер не должен уезжать за экран
+        const rect = miniplayer_template.nodes[0].getBoundingClientRect()
+        const left = Math.max(0, Math.min(rect.left, window.innerWidth - rect.width))
+        const top = Math.max(0, Math.min(rect.top, window.innerHeight - rect.height))
+        miniplayer_template.attr('style', `left:${left}px;top:${top}px`)
+
         $('#ajax_audio_player').draggable({
-            cursor: 'grabbing', 
+            cursor: 'grabbing',
             containment: 'window',
-            cancel: '#aj_player_track .selectableTrack, #aj_player_volume .selectableTrack, #aj_player_buttons',
+            cancel: skin.cancel,
             stop: function(e) {
                 if(window.player.ajaxPlayer.length > 0) {
                     const left = parseInt(window.player.ajaxPlayer.nodes[0].style.left)
@@ -968,6 +1014,27 @@ window.player = new class {
             }
         })
         this.ajaxPlayer_ApplyQueueBlock()
+    }
+
+    ajSetSkin(name) {
+        if(this.ajaxPlayer.length > 0) {
+            this.ajSkin.destroy?.()
+        }
+
+        localStorage.setItem('audio.skin', name)
+        if(this.ajaxPlayer.length == 0) {
+            return
+        }
+
+        const hidden = this.ajaxPlayer.hasClass('hidden')
+        $('#ajax_audio_player').remove()
+        this.ajCreate()
+        if(hidden) {
+            this.ajaxPlayer.addClass('hidden')
+        }
+
+        u(this.audioPlayer).trigger('volumechange')
+        u(this.audioPlayer).trigger('timeupdate')
     }
 
     bigPlayer_toggleCountBlock() {
@@ -1455,6 +1522,8 @@ u(document).on('contextmenu', '.bigPlayer, .audioEmbed, #ajax_audio_player', (e)
 
     u('#ctx_menu').remove()
     const ctx_type = u(e.target).closest('.bigPlayer, #ajax_audio_player').length > 0 ? 'main_player' : 'mini_player'
+    const with_skins = u(e.target).closest('#ajax_audio_player').length > 0 && !(window.isMobile && isMobile())
+    const current_skin = window.player.ajSkinName
     const ctxPlace = e.target.closest('.ctx_place')
     if(!ctxPlace) {
         return
@@ -1473,8 +1542,6 @@ u(document).on('contextmenu', '.bigPlayer, .audioEmbed, #ajax_audio_player', (e)
         if(e.clientY + 100 > window.innerHeight) {
             y -= 100
         }
-    } else if((rect.height + rect.top) + 100 > window.innerHeight) {
-        y = ((rect.height + 120) * -1)
     }
 
     const ctx_u = u(`
@@ -1493,10 +1560,28 @@ u(document).on('contextmenu', '.bigPlayer, .audioEmbed, #ajax_audio_player', (e)
             <a id='audio_ctx_add_to_playlist'>${tr('audio_ctx_add_to_playlist')}</a>
             ${ctx_type == 'main_player' ? `<a id='audio_ctx_clear_context'>${tr('audio_ctx_clear_context')}</a>` : ''}
             ${ctx_type == 'main_player' ? `<a id='audio_ctx_show_count'>${tr('audio_ctx_show_count')}</a>` : ''}
+            ${with_skins ? Object.keys(window.ajaxPlayerSkins).map(skin => `
+            <a class='audio_ctx_skin ${skin == current_skin ? 'pressed' : ''}' data-skin='${skin}'>${tr('audio_ctx_skin_' + skin)}</a>
+            `).join('') : ''}
             ${ctx_type == 'main_player' ? `<a>BigPlayer v1.3</a>` : ''}
         </div>
     `)
     u(parent).append(ctx_u)
+
+    // плавающий плеер бывает высоким, меню сдвигается так, чтобы влезть в экран
+    if(!pageContent) {
+        const menu_rect = ctx_u.nodes[0].getBoundingClientRect()
+        const shift_y = Math.max(0, menu_rect.bottom - window.innerHeight + 4)
+        const shift_x = Math.max(0, menu_rect.right - window.innerWidth + 4)
+        ctx_u.attr('style', `top:${y - shift_y}px;left:${x - shift_x}px;`)
+    }
+
+    ctx_u.find('.audio_ctx_skin').on('click', (ev) => {
+        const skin = ev.target.dataset.skin
+        if(skin != window.player.ajSkinName) {
+            window.player.ajSetSkin(skin)
+        }
+    })
     ctx_u.find('#audio_ctx_copy').on('click', async (e) => {
         if(ctx_type == 'main_player') {
             if(window.player.current_track_id == 0) {

@@ -1,0 +1,773 @@
+/* скин winamp 2.x для плавающего плеера, координаты взяты из классического main.bmp 275x116 */
+
+#ajax_audio_player.skin_winamp,
+#ajax_audio_player.skin_winamp.ui-draggable-dragging {
+    --wa-frame: linear-gradient(#3e3e60, #343454);
+    --wa-frame-shadow: inset 0 0 0 1px #0e0e18, inset 2px 2px #62628a, inset -2px -2px #1c1c2c;
+    --wa-green: #12e012;
+    --wa-led-off: #24403a;
+    --wa-led-on: #3cff3c;
+    --wa-ink: #2a2f4a;
+
+    width: 275px;
+    height: auto;
+    padding: 0;
+    background: none;
+    border-radius: 0;
+    box-shadow: none;
+    user-select: none;
+}
+
+#ajax_audio_player.skin_winamp #aj_player {
+    height: auto;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+/* main.css красит все span в чёрный и добавляет отступ снизу */
+#ajax_audio_player.skin_winamp span {
+    padding: 0;
+    color: inherit;
+    font-weight: inherit;
+}
+
+#ajax_audio_player.skin_winamp .wa_main,
+#ajax_audio_player.skin_winamp .wa_pl {
+    position: relative;
+    width: 275px;
+    background: var(--wa-frame);
+    box-shadow: var(--wa-frame-shadow);
+}
+
+#ajax_audio_player.skin_winamp .wa_main {
+    height: 116px;
+}
+
+#ajax_audio_player.skin_winamp .wa_main > * {
+    position: absolute;
+}
+
+#ajax_audio_player.skin_winamp .tip_result {
+    display: none;
+}
+
+/* заголовок */
+
+#ajax_audio_player.skin_winamp .wa_title {
+    left: 0;
+    top: 0;
+    width: 275px;
+    height: 14px;
+    box-sizing: border-box;
+    padding: 0 2px 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: grab;
+}
+
+#ajax_audio_player.skin_winamp .wa_stripes {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(#f2e3ad, #fffee0 35%, #ccab5a 70%, #8c7438);
+    box-shadow: 0 0 0 1px #1d1d2c;
+}
+
+#ajax_audio_player.skin_winamp .wa_title_text {
+    font-size: 9px;
+    font-weight: bold;
+    line-height: 14px;
+    letter-spacing: 1.5px;
+    color: #f4f4ff;
+    text-shadow: 1px 1px #15151f;
+}
+
+#ajax_audio_player.skin_winamp .wa_tbtn {
+    position: relative;
+    flex: none;
+    width: 9px;
+    height: 9px;
+    cursor: pointer;
+}
+
+#ajax_audio_player.skin_winamp .wa_menu {
+    margin-right: 1px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9'%3E%3Cpath d='M.5 6.5l2.5-5 2 4 1.5-2.5 2 2' fill='none' stroke='%23e9d18d' stroke-width='1.6' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+#ajax_audio_player.skin_winamp .wa_minimize,
+#ajax_audio_player.skin_winamp .wa_shade,
+#ajax_audio_player.skin_winamp .wa_close {
+    border-radius: 2px;
+    background: linear-gradient(#efe4bd, #b5a36f);
+    box-shadow: inset 0 0 0 1px #4d4229;
+}
+
+#ajax_audio_player.skin_winamp .wa_minimize::after,
+#ajax_audio_player.skin_winamp .wa_shade::after {
+    content: '';
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    background: #2e2b24;
+}
+
+#ajax_audio_player.skin_winamp .wa_minimize::after {
+    bottom: 2px;
+    height: 1px;
+}
+
+#ajax_audio_player.skin_winamp .wa_shade::after {
+    top: 2px;
+    height: 2px;
+}
+
+#ajax_audio_player.skin_winamp .wa_close::before,
+#ajax_audio_player.skin_winamp .wa_close::after {
+    content: '';
+    position: absolute;
+    left: 1px;
+    top: 4px;
+    width: 7px;
+    height: 1px;
+    background: #2e2b24;
+    transform: rotate(45deg);
+}
+
+#ajax_audio_player.skin_winamp .wa_close::after {
+    transform: rotate(-45deg);
+}
+
+#ajax_audio_player.skin_winamp .wa_tbtn:active {
+    filter: brightness(0.8);
+}
+
+/* дисплей */
+
+#ajax_audio_player.skin_winamp .wa_lcd {
+    left: 9px;
+    top: 20px;
+    width: 95px;
+    height: 44px;
+    background: #000;
+    box-shadow: 0 0 0 1px #15151f, 1px 1px 0 1px #5b5b80;
+}
+
+#ajax_audio_player.skin_winamp .wa_lcd > * {
+    position: absolute;
+}
+
+#ajax_audio_player.skin_winamp .wa_clutter {
+    left: 1px;
+    top: 2px;
+    width: 8px;
+    display: flex;
+    flex-direction: column;
+    font-size: 7px;
+    font-weight: bold;
+    text-align: center;
+    color: #55556b;
+}
+
+#ajax_audio_player.skin_winamp .wa_clutter span {
+    height: 8px;
+    line-height: 8px;
+}
+
+#ajax_audio_player.skin_winamp .wa_status {
+    left: 15px;
+    top: 8px;
+    width: 9px;
+    height: 9px;
+}
+
+#ajax_audio_player.skin_winamp .wa_status svg,
+#ajax_audio_player.skin_winamp .wa_time svg {
+    display: block;
+    fill: var(--wa-green);
+}
+
+#ajax_audio_player.skin_winamp .wa_time {
+    left: 27px;
+    top: 6px;
+    width: 63px;
+    height: 13px;
+    cursor: pointer;
+}
+
+#ajax_audio_player.skin_winamp.wa_pause .wa_time svg {
+    animation: wa_blink 1s steps(1) infinite;
+}
+
+#ajax_audio_player.skin_winamp .wa_vis {
+    left: 15px;
+    top: 23px;
+    width: 76px;
+    height: 16px;
+    image-rendering: pixelated;
+    cursor: pointer;
+}
+
+#ajax_audio_player.skin_winamp.wa_vis_off .wa_vis {
+    visibility: hidden;
+}
+
+#ajax_audio_player.skin_winamp .wa_lcdbox,
+#ajax_audio_player.skin_winamp .wa_marquee {
+    box-sizing: border-box;
+    background: #000;
+    box-shadow: 0 0 0 1px #15151f, 1px 1px 0 1px #5b5b80;
+    color: var(--wa-green);
+    font-size: 8px;
+    font-weight: bold;
+    line-height: 10px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+#ajax_audio_player.skin_winamp .wa_marquee {
+    left: 109px;
+    top: 23px;
+    width: 157px;
+    height: 13px;
+    padding-left: 3px;
+    text-align: left;
+}
+
+#ajax_audio_player.skin_winamp .wa_marquee_text {
+    display: inline-block;
+    color: var(--wa-green);
+    white-space: pre;
+    font-size: 9px;
+    line-height: 13px;
+}
+
+#ajax_audio_player.skin_winamp .wa_marquee_text.wa_scroll {
+    animation-name: wa_marquee;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
+
+#ajax_audio_player.skin_winamp .wa_kbps {
+    left: 109px;
+    top: 41px;
+    width: 20px;
+    height: 10px;
+}
+
+#ajax_audio_player.skin_winamp .wa_khz {
+    left: 155px;
+    top: 41px;
+    width: 14px;
+    height: 10px;
+}
+
+#ajax_audio_player.skin_winamp .wa_label,
+#ajax_audio_player.skin_winamp .wa_channels {
+    top: 41px;
+    font-size: 8px;
+    font-weight: bold;
+    line-height: 10px;
+}
+
+#ajax_audio_player.skin_winamp .wa_label {
+    color: #e8e8f2;
+}
+
+#ajax_audio_player.skin_winamp .wa_kbps_label {
+    left: 132px;
+}
+
+#ajax_audio_player.skin_winamp .wa_khz_label {
+    left: 172px;
+}
+
+#ajax_audio_player.skin_winamp .wa_channels {
+    left: 212px;
+    width: 56px;
+    display: flex;
+    justify-content: space-between;
+    color: #6c7088;
+}
+
+#ajax_audio_player.skin_winamp .wa_channels .wa_on {
+    color: #19d43c;
+    text-shadow: 0 0 2px rgba(25, 212, 60, 0.6);
+}
+
+/* громкость, баланс и перемотка */
+
+#ajax_audio_player.skin_winamp #aj_player_volume,
+#ajax_audio_player.skin_winamp .wa_balance {
+    top: 57px;
+    height: 13px;
+    padding: 0;
+}
+
+#ajax_audio_player.skin_winamp #aj_player_volume {
+    left: 107px;
+    width: 68px;
+}
+
+#ajax_audio_player.skin_winamp .wa_balance {
+    left: 177px;
+    width: 38px;
+}
+
+#ajax_audio_player.skin_winamp .selectableTrack {
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+#ajax_audio_player.skin_winamp .wa_thumb_area {
+    position: relative;
+    height: 100%;
+}
+
+#ajax_audio_player.skin_winamp #aj_player_volume .selectableTrack::before,
+#ajax_audio_player.skin_winamp .wa_balance::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 4px;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--wa-volume-color, #d42a10);
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.35), inset 0 -1px rgba(0, 0, 0, 0.3), 0 0 0 1px #15151f;
+}
+
+#ajax_audio_player.skin_winamp .wa_balance::before {
+    background: #2fa81d;
+}
+
+#ajax_audio_player.skin_winamp #aj_player_volume .wa_thumb_area {
+    width: calc(100% - 14px);
+}
+
+#ajax_audio_player.skin_winamp #aj_player_volume .slider,
+#ajax_audio_player.skin_winamp .wa_balance_thumb {
+    position: absolute;
+    top: 1px;
+    width: 14px;
+    height: 11px;
+    box-sizing: border-box;
+    border: 1px solid #23232f;
+    border-radius: 2px;
+    background: linear-gradient(#e6ecf0, #b7c2cc 50%, #8d99a6);
+    cursor: pointer;
+}
+
+#ajax_audio_player.skin_winamp .wa_balance_thumb {
+    left: 12px;
+}
+
+#ajax_audio_player.skin_winamp #aj_player_volume .slider::after,
+#ajax_audio_player.skin_winamp .wa_balance_thumb::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 2px;
+    width: 6px;
+    height: 5px;
+    background: repeating-linear-gradient(90deg, #4a5468 0 1px, transparent 1px 2px);
+}
+
+#ajax_audio_player.skin_winamp #aj_player_track_length {
+    left: 16px;
+    top: 72px;
+    width: 248px;
+    height: 10px;
+    background: #262739;
+    box-shadow: inset 1px 1px #15151f, inset -1px -1px #4b4b6c;
+}
+
+#ajax_audio_player.skin_winamp #aj_player_track_length .wa_thumb_area {
+    width: calc(100% - 29px);
+}
+
+#ajax_audio_player.skin_winamp #aj_player_track_length .slider {
+    position: absolute;
+    top: 0;
+    width: 29px;
+    height: 10px;
+    box-sizing: border-box;
+    border: 1px solid #3d321a;
+    border-radius: 2px;
+    background:
+        linear-gradient(#8c7438, #8c7438) 4px 3px / 19px 1px no-repeat,
+        linear-gradient(#fffee0, #fffee0) 4px 4px / 19px 1px no-repeat,
+        linear-gradient(#f2e3ad, #ccab5a 60%, #9b8040);
+    cursor: pointer;
+}
+
+#ajax_audio_player.skin_winamp.wa_stop #aj_player_track_length .slider {
+    display: none;
+}
+
+/* кнопки */
+
+#ajax_audio_player.skin_winamp .wa_btn {
+    box-sizing: border-box;
+    border: 1px solid;
+    border-color: #f4f8fb #5f6d82 #5f6d82 #f4f8fb;
+    background: linear-gradient(#e2eaf0, #c8d5dd 45%, #b4c3cf);
+    box-shadow: 0 0 0 1px #1d1d2a;
+    color: var(--wa-ink);
+    font-size: 7px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#ajax_audio_player.skin_winamp .wa_btn:active,
+#ajax_audio_player.skin_winamp .wa_mini_btn:active {
+    border-color: #5f6d82 #f4f8fb #f4f8fb #5f6d82;
+    background: linear-gradient(#aebdca, #c6d2db);
+}
+
+#ajax_audio_player.skin_winamp .wa_transport {
+    left: 16px;
+    top: 88px;
+    display: flex;
+}
+
+#ajax_audio_player.skin_winamp .wa_transport .wa_btn {
+    position: relative;
+    width: 23px;
+    height: 18px;
+}
+
+#ajax_audio_player.skin_winamp .wa_transport .wa_next {
+    width: 22px;
+}
+
+#ajax_audio_player.skin_winamp .wa_transport svg,
+#ajax_audio_player.skin_winamp .wa_eject svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    fill: #e9f0f4;
+    stroke: #4c5a73;
+    stroke-width: 1;
+}
+
+#ajax_audio_player.skin_winamp .wa_eject {
+    left: 136px;
+    top: 89px;
+    width: 22px;
+    height: 16px;
+}
+
+#ajax_audio_player.skin_winamp .wa_shuffle,
+#ajax_audio_player.skin_winamp .wa_repeat,
+#ajax_audio_player.skin_winamp .wa_toggle {
+    padding-left: 10px;
+}
+
+#ajax_audio_player.skin_winamp .wa_shuffle {
+    left: 164px;
+    top: 89px;
+    width: 47px;
+    height: 15px;
+    line-height: 13px;
+}
+
+#ajax_audio_player.skin_winamp .wa_repeat {
+    left: 210px;
+    top: 89px;
+    width: 28px;
+    height: 15px;
+}
+
+#ajax_audio_player.skin_winamp .wa_repeat svg {
+    display: block;
+    width: 13px;
+    height: 9px;
+    margin-top: 2px;
+    fill: var(--wa-ink);
+}
+
+#ajax_audio_player.skin_winamp .wa_toggle {
+    top: 58px;
+    width: 23px;
+    height: 12px;
+    line-height: 10px;
+}
+
+#ajax_audio_player.skin_winamp .wa_eq {
+    left: 219px;
+    cursor: default;
+}
+
+#ajax_audio_player.skin_winamp .wa_pl_toggle {
+    left: 242px;
+}
+
+/* светодиоды на кнопках */
+#ajax_audio_player.skin_winamp .wa_shuffle::before,
+#ajax_audio_player.skin_winamp .wa_repeat::before,
+#ajax_audio_player.skin_winamp .wa_toggle::before {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 4px;
+    height: 3px;
+    background: var(--wa-led-off);
+    box-shadow: 0 0 0 1px #1d1d2a;
+}
+
+#ajax_audio_player.skin_winamp .wa_shuffle:active::before,
+#ajax_audio_player.skin_winamp .wa_repeat.wa_on::before,
+#ajax_audio_player.skin_winamp:not(.wa_pl_hidden) .wa_pl_toggle::before {
+    background: var(--wa-led-on);
+    box-shadow: 0 0 0 1px #1d1d2a, 0 0 3px var(--wa-led-on);
+}
+
+#ajax_audio_player.skin_winamp .wa_eq:active {
+    border-color: #f4f8fb #5f6d82 #5f6d82 #f4f8fb;
+    background: linear-gradient(#e2eaf0, #c8d5dd 45%, #b4c3cf);
+}
+
+#ajax_audio_player.skin_winamp .wa_logo {
+    left: 252px;
+    top: 90px;
+    width: 15px;
+    height: 16px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 15 16'%3E%3Cpath d='M9 .5L2 9h4.5L4 15.5 13 6H8.5L11 .5z' fill='%23d8b45a' stroke='%234d3a12' stroke-linejoin='round'/%3E%3Cpath d='M9 2L4.5 7.5' stroke='%23fff3c4' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat;
+}
+
+/* свёрнутое окно */
+
+#ajax_audio_player.skin_winamp.wa_shaded .wa_main {
+    height: 14px;
+}
+
+#ajax_audio_player.skin_winamp.wa_shaded .wa_main > :not(.wa_title),
+#ajax_audio_player.skin_winamp.wa_shaded .wa_main .wa_stripes,
+#ajax_audio_player.skin_winamp.wa_shaded .wa_main .wa_title_text {
+    display: none;
+}
+
+#ajax_audio_player.skin_winamp .wa_shade_info {
+    display: none;
+    flex: 1;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-right: 4px;
+}
+
+#ajax_audio_player.skin_winamp.wa_shaded .wa_shade_info {
+    display: flex;
+}
+
+#ajax_audio_player.skin_winamp .wa_shade_time {
+    width: 30px;
+    height: 9px;
+    line-height: 9px;
+    cursor: pointer;
+}
+
+#ajax_audio_player.skin_winamp .wa_mini {
+    display: flex;
+    gap: 1px;
+}
+
+#ajax_audio_player.skin_winamp .wa_mini_btn {
+    width: 8px;
+    height: 8px;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+#ajax_audio_player.skin_winamp .wa_mini_btn svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    fill: #d0d6e2;
+}
+
+/* плейлист */
+
+#ajax_audio_player.skin_winamp.wa_pl_hidden .wa_pl,
+#ajax_audio_player.skin_winamp.wa_pl_shaded .wa_pl_list,
+#ajax_audio_player.skin_winamp.wa_pl_shaded .wa_pl_bottom {
+    display: none;
+}
+
+#ajax_audio_player.skin_winamp .wa_pl_title {
+    position: relative;
+    height: 20px;
+    padding: 0 4px 0 6px;
+}
+
+#ajax_audio_player.skin_winamp .wa_pl_list {
+    margin: 0 7px 0 12px;
+    background: #000;
+    box-shadow: 0 0 0 1px #15151f;
+}
+
+#ajax_audio_player.skin_winamp #aj_player_tracks,
+#ajax_audio_player.skin_winamp:hover #aj_player_tracks,
+#ajax_audio_player.skin_winamp.ui-draggable-dragging #aj_player_tracks {
+    display: block;
+    width: auto;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    border-radius: 0;
+    background: #000;
+    overflow-y: scroll;
+}
+
+#ajax_audio_player.skin_winamp #aj_player_tracks::-webkit-scrollbar {
+    width: 13px;
+}
+
+#ajax_audio_player.skin_winamp #aj_player_tracks::-webkit-scrollbar-track {
+    background: #383858;
+}
+
+#ajax_audio_player.skin_winamp #aj_player_tracks::-webkit-scrollbar-thumb {
+    min-height: 18px;
+    border-left: 5px solid transparent;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #8c7438, #fffee0 40%, #ccab5a 70%, #8c7438) padding-box;
+}
+
+@supports (-moz-appearance: none) {
+    #ajax_audio_player.skin_winamp #aj_player_tracks {
+        scrollbar-color: #ccab5a #383858;
+        scrollbar-width: thin;
+    }
+}
+
+#ajax_audio_player.skin_winamp #aj_player_tracks .aj_track {
+    display: flex;
+    gap: 6px;
+    padding: 0 3px;
+    font-size: 11px;
+    line-height: 14px;
+    color: #00e800;
+    cursor: pointer;
+}
+
+#ajax_audio_player.skin_winamp #aj_player_tracks .aj_track:hover {
+    background: #0000c6;
+}
+
+#ajax_audio_player.skin_winamp #aj_player_tracks .aj_track .wa_pl_name,
+#ajax_audio_player.skin_winamp #aj_player_tracks .aj_track .wa_pl_len {
+    color: inherit;
+    white-space: nowrap;
+}
+
+#ajax_audio_player.skin_winamp #aj_player_tracks .aj_track .wa_pl_name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#ajax_audio_player.skin_winamp #aj_player_tracks .aj_track.selected {
+    background: none;
+    color: #fff;
+}
+
+#ajax_audio_player.skin_winamp #aj_player_tracks .aj_track.selected:hover {
+    background: #0000c6;
+}
+
+#ajax_audio_player.skin_winamp .wa_pl_bottom {
+    position: relative;
+    height: 38px;
+}
+
+#ajax_audio_player.skin_winamp .wa_pl_bottom > * {
+    position: absolute;
+}
+
+#ajax_audio_player.skin_winamp .wa_small {
+    top: 10px;
+    width: 25px;
+    height: 18px;
+    line-height: 16px;
+    text-align: center;
+}
+
+#ajax_audio_player.skin_winamp .wa_small:nth-child(2) {
+    left: 40px;
+}
+
+#ajax_audio_player.skin_winamp .wa_small:nth-child(3) {
+    left: 69px;
+}
+
+#ajax_audio_player.skin_winamp .wa_small:nth-child(4) {
+    left: 98px;
+}
+
+#ajax_audio_player.skin_winamp .wa_small:first-child {
+    left: 11px;
+}
+
+#ajax_audio_player.skin_winamp .wa_pl_total {
+    left: 131px;
+    top: 7px;
+    width: 88px;
+    height: 10px;
+    padding-left: 3px;
+    text-align: left;
+}
+
+#ajax_audio_player.skin_winamp .wa_pl_bottom .wa_mini {
+    left: 131px;
+    top: 22px;
+}
+
+#ajax_audio_player.skin_winamp .wa_pl_time {
+    left: 187px;
+    top: 21px;
+    width: 32px;
+    height: 10px;
+    cursor: pointer;
+}
+
+#ajax_audio_player.skin_winamp .wa_listopts {
+    left: 228px;
+    top: 9px;
+    width: 23px;
+    height: 20px;
+    font-size: 6px;
+    line-height: 7px;
+    padding-top: 2px;
+}
+
+#ajax_audio_player.skin_winamp .wa_pl_grip {
+    right: 3px;
+    bottom: 3px;
+    width: 12px;
+    height: 12px;
+    background: repeating-linear-gradient(135deg, transparent 0 2px, #8a8aa8 2px 3px, #1c1c2c 3px 4px);
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
+    cursor: ns-resize;
+}
+
+@keyframes wa_blink {
+    50% {
+        opacity: 0;
+    }
+}
+
+@keyframes wa_marquee {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(-50%);
+    }
+}

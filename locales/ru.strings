@@ -1016,6 +1016,8 @@
 "audio_ctx_play_next" = "Воспроизвести следующим";
 "audio_ctx_clear_context" = "Очистить список треков";
 "audio_ctx_show_count" = "Показать пагинатор";
+"audio_ctx_skin_default" = "Обычный плеер";
+"audio_ctx_skin_winamp" = "Скин Winamp";
 
 "is_x_audio_zero" = "Нету аудиозаписей";
 "is_x_audio_one" = "Всего $1 аудиозапись.";
