@@ -1059,6 +1059,7 @@
 "audio_ctx_show_count" = "Show paginator";
 "audio_ctx_skin_default" = "Default player";
 "audio_ctx_skin_winamp" = "Winamp skin";
+"audio_ctx_skin_named" = "$1 skin";
 
 "is_x_audio_zero" = "No audios";
 "is_x_audio_one" = "Just one audio.";

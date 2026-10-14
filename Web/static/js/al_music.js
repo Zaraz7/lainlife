@@ -1561,7 +1561,7 @@ u(document).on('contextmenu', '.bigPlayer, .audioEmbed, #ajax_audio_player', (e)
             ${ctx_type == 'main_player' ? `<a id='audio_ctx_clear_context'>${tr('audio_ctx_clear_context')}</a>` : ''}
             ${ctx_type == 'main_player' ? `<a id='audio_ctx_show_count'>${tr('audio_ctx_show_count')}</a>` : ''}
             ${with_skins ? Object.keys(window.ajaxPlayerSkins).map(skin => `
-            <a class='audio_ctx_skin ${skin == current_skin ? 'pressed' : ''}' data-skin='${skin}'>${tr('audio_ctx_skin_' + skin)}</a>
+            <a class='audio_ctx_skin ${skin == current_skin ? 'pressed' : ''}' data-skin='${skin}'>${window.ajaxPlayerSkins[skin].title ? tr('audio_ctx_skin_named', escapeHtml(window.ajaxPlayerSkins[skin].title)) : tr('audio_ctx_skin_' + skin)}</a>
             `).join('') : ''}
             ${ctx_type == 'main_player' ? `<a>BigPlayer v1.3</a>` : ''}
         </div>

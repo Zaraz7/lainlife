@@ -1018,6 +1018,7 @@
 "audio_ctx_show_count" = "Показать пагинатор";
 "audio_ctx_skin_default" = "Обычный плеер";
 "audio_ctx_skin_winamp" = "Скин Winamp";
+"audio_ctx_skin_named" = "Скин $1";
 
 "is_x_audio_zero" = "Нету аудиозаписей";
 "is_x_audio_one" = "Всего $1 аудиозапись.";

@@ -68,8 +68,7 @@ function waMiniControls() {
     `).join('')}</div>`
 }
 
-window.ajaxPlayerSkins = window.ajaxPlayerSkins ?? {}
-window.ajaxPlayerSkins.winamp = new class {
+class WinampSkin {
     queueParent = '#ajax_audio_player .wa_pl_list'
     cancel = '[data-wa], #aj_player_track_length, #aj_player_volume, #aj_player_tracks, .wa_balance'
 
@@ -77,10 +76,17 @@ window.ajaxPlayerSkins.winamp = new class {
     marquee_measured = false
     flash_text = null
     time_text = null
+    kbps_text = ''
     vis_frame = null
 
+    vis_palette = { bg: '#000', dots: '#182129', bars: WA_VIS_COLORS, peak: '#969696' }
+
+    constructor(name) {
+        this.name = name
+    }
+
     get node() {
-        return u('#ajax_audio_player.skin_winamp')
+        return u(`#ajax_audio_player.skin_${this.name}`)
     }
 
     get audio() {
@@ -391,7 +397,7 @@ window.ajaxPlayerSkins.winamp = new class {
         const status = this.status
         const track = window.player.currentTrack
         node.removeClass('wa_play wa_pause wa_stop').addClass(`wa_${status}`)
-        node.find('.wa_status').html(this.statusSvg(status))
+        this.renderStatus(node, status)
         node.find('.wa_repeat').toggleClass('wa_on', this.audio.loop)
 
         if(track) {
@@ -404,7 +410,7 @@ window.ajaxPlayerSkins.winamp = new class {
         const loaded = window.player.tracks.reduce((sum, item) => sum + Number(item.length ?? 0), 0)
         const context = window.player.context
         const more = context.pagesCount > (context.playedPages ?? []).length
-        node.find('.wa_pl_total').text(track ? `${waLength(track.length)}/${waLength(loaded)}${more ? '+' : ''}` : '')
+        this.setText(node.find('.wa_pl_total'), track ? `${waLength(track.length)}/${waLength(loaded)}${more ? '+' : ''}` : '')
 
         this.updateStream()
         this.time_text = null
@@ -428,9 +434,10 @@ window.ajaxPlayerSkins.winamp = new class {
             } catch(e) {}
         }
 
-        node.find('.wa_kbps').text(kbps)
+        this.kbps_text = kbps
+        this.setText(node.find('.wa_kbps'), kbps)
         // processAudio.sh всегда перекодирует в 44100 Гц
-        node.find('.wa_khz').text(active ? '44' : '')
+        this.setText(node.find('.wa_khz'), active ? '44' : '')
         node.find('.wa_mono').toggleClass('wa_on', active && mono)
         node.find('.wa_stereo').toggleClass('wa_on', active && !mono)
     }
@@ -461,10 +468,11 @@ window.ajaxPlayerSkins.winamp = new class {
         }
 
         this.time_text = text
-        node.find('.wa_time').html(waDigitsSvg(text))
-        node.find('.wa_pl_time, .wa_shade_time').text(text.trim())
+        this.renderTime(node, text)
+        this.setText(node.find('.wa_pl_time'), text.trim())
+        this.setText(node.find('.wa_shade_time'), text.trim())
 
-        if(node.find('.wa_kbps').text() == '' && this.status != 'stop') {
+        if(this.kbps_text == '' && this.status != 'stop') {
             this.updateStream()
         }
     }
@@ -472,6 +480,18 @@ window.ajaxPlayerSkins.winamp = new class {
     volume(volume) {
         // как в оригинале: чем громче, тем краснее полоса
         this.node.find('.wa_volume').attr('style', `--wa-volume-color: hsl(${Math.round((1 - volume) * 120)}deg 85% 42%)`)
+    }
+
+    setText(el, text) {
+        el.text(text)
+    }
+
+    renderTime(node, text) {
+        node.find('.wa_time').html(waDigitsSvg(text))
+    }
+
+    renderStatus(node, status) {
+        node.find('.wa_status').html(this.statusSvg(status))
     }
 
     statusSvg(status) {
@@ -523,10 +543,11 @@ window.ajaxPlayerSkins.winamp = new class {
     startVis() {
         const canvas = this.node.find('.wa_vis').nodes[0]
         const ctx = canvas.getContext('2d')
+        const palette = this.vis_palette
         const gradient = ctx.createLinearGradient(0, 0, 0, 16)
-        WA_VIS_COLORS.forEach((color, i) => {
-            gradient.addColorStop(i / WA_VIS_COLORS.length, color)
-            gradient.addColorStop((i + 1) / WA_VIS_COLORS.length, color)
+        palette.bars.forEach((color, i) => {
+            gradient.addColorStop(i / palette.bars.length, color)
+            gradient.addColorStop((i + 1) / palette.bars.length, color)
         })
 
         const bars = new Array(19).fill(0)
@@ -566,9 +587,9 @@ window.ajaxPlayerSkins.winamp = new class {
                 peaks[i] = bars[i] >= peaks[i] ? bars[i] : Math.max(0, peaks[i] - 0.3)
             })
 
-            ctx.fillStyle = '#000'
+            ctx.fillStyle = palette.bg
             ctx.fillRect(0, 0, 76, 16)
-            ctx.fillStyle = '#182129'
+            ctx.fillStyle = palette.dots
             for(let y = 1; y < 16; y += 2) {
                 for(let x = 1; x < 76; x += 2) {
                     ctx.fillRect(x, y, 1, 1)
@@ -577,7 +598,7 @@ window.ajaxPlayerSkins.winamp = new class {
 
             ctx.fillStyle = gradient
             bars.forEach((bar, i) => ctx.fillRect(i * 4, 16 - bar, 3, bar))
-            ctx.fillStyle = '#969696'
+            ctx.fillStyle = palette.peak
             peaks.forEach((peak, i) => {
                 if(peak >= 1) {
                     ctx.fillRect(i * 4, 16 - Math.round(peak) - 1, 3, 1)
@@ -586,8 +607,291 @@ window.ajaxPlayerSkins.winamp = new class {
         }
 
         cancelAnimationFrame(this.vis_frame)
-        ctx.fillStyle = '#000'
+        ctx.fillStyle = palette.bg
         ctx.fillRect(0, 0, 76, 16)
         this.vis_frame = requestAnimationFrame(draw)
     }
+}
+
+window.ajaxPlayerSkins = window.ajaxPlayerSkins ?? {}
+window.ajaxPlayerSkins.winamp = new WinampSkin('winamp')
+
+// раскладка text.bmp: буквы, цифры со знаками, редкие символы; ячейка 5x6
+const WA_FONT = {}
+'ABCDEFGHIJKLMNOPQRSTUVWXYZ"@'.split('').forEach((char, i) => WA_FONT[char] = [i, 0])
+'0123456789….:()-\'!_+\\/[]^&%,=$#'.split('').forEach((char, i) => WA_FONT[char] = [i, 1])
+'ÅÖÄ?*'.split('').forEach((char, i) => WA_FONT[char] = [i, 2])
+Object.assign(WA_FONT, { ' ': [30, 0], '<': WA_FONT['['], '>': WA_FONT[']'], '{': WA_FONT['['], '}': WA_FONT[']'], '`': WA_FONT["'"] })
+
+// классические скины winamp из .wsz, отрисованные их собственными спрайтами
+class WinampBitmapSkin extends WinampSkin {
+    text_image = null
+
+    constructor(name, config) {
+        super(name)
+        this.title = config.title
+        this.config = config
+        this.path = `/assets/packages/static/openvk/img/winamp_skins/${name}/`
+        this.vis_palette = { bg: config.vis[0], dots: config.vis[1], bars: config.vis.slice(2, 18), peak: config.vis[23] }
+    }
+
+    template() {
+        const sprites = ['main', 'titlebar', 'cbuttons', 'playpaus', 'numbers', 'text', 'volume', 'balance', 'posbar', 'shufrep', 'monoster', 'pledit', 'pl_top_tile', 'pl_left_tile', 'pl_right_tile']
+        const pl = this.config.playlist
+        const vars = sprites.map(sprite => `--wa-${sprite.replaceAll('_', '-')}: url('${this.path}${sprite}.png')`).concat([
+            `--wa-pl-normal: ${pl.normal}`, `--wa-pl-current: ${pl.current}`, `--wa-pl-bg: ${pl.bg}`,
+            `--wa-pl-selected: ${pl.selected}`, `--wa-pl-font: '${pl.font}'`, `--wa-text-color: ${this.config.textColor}`,
+            this.config.region ? `--wa-region: path('${this.config.region}')` : '',
+        ]).filter(Boolean).join('; ')
+        const classes = [
+            this.config.numsEx ? 'wa_nums_ex' : '',
+            this.config.volumeThumb ? '' : 'wa_no_volume_thumb',
+            this.config.balanceThumb ? '' : 'wa_no_balance_thumb',
+        ].join(' ')
+        const thumb_track = (id, cls) => `
+            <div id='${id}' class='${cls}'>
+                <div class='selectableTrack'>
+                    <div class='wa_thumb_area'>
+                        <div class='slider'></div>
+                    </div>
+                </div>
+            </div>
+        `
+        const hit = (action, cls = '') => `<div class='wa_hit ${cls}' data-wa='${action}'></div>`
+
+        return `
+            <div id='ajax_audio_player' class='ctx_place wa_skin'>
+                <div id='aj_player' class='wa wa_bitmap ${classes}' style="${vars}">
+                    <div class='wa_main'>
+                        <div class='wa_title'></div>
+                        <div class='wa_tbtn wa_menu' data-wa='menu'></div>
+                        <div class='wa_tbtn wa_minimize' data-wa='shade'></div>
+                        <div class='wa_tbtn wa_shade' data-wa='shade'></div>
+                        <div class='wa_tbtn wa_close' data-wa='close'></div>
+
+                        <div class='wa_clutter'></div>
+                        <div class='wa_work'></div>
+                        <div class='wa_status'></div>
+                        <div class='wa_time' data-wa='time'>
+                            <span class='wa_digit wa_minus'></span><span class='wa_digit'></span><span class='wa_digit'></span><span class='wa_digit'></span><span class='wa_digit'></span>
+                        </div>
+                        <canvas class='wa_vis' width='76' height='16' data-wa='vis'></canvas>
+                        <div class='wa_marquee'></div>
+                        <div class='wa_kbps'></div>
+                        <div class='wa_khz'></div>
+                        <div class='wa_mono'></div>
+                        <div class='wa_stereo'></div>
+
+                        ${thumb_track('aj_player_volume', 'wa_volume')}
+                        <div class='wa_balance'><div class='wa_balance_thumb'></div></div>
+                        <div class='wa_eq'></div>
+                        <div class='wa_pl_toggle' data-wa='playlist'></div>
+                        ${thumb_track('aj_player_track_length', 'wa_posbar')}
+
+                        <div class='wa_btn wa_prev' data-wa='prev'></div>
+                        <div class='wa_btn wa_play' data-wa='play'></div>
+                        <div class='wa_btn wa_pause' data-wa='pause'></div>
+                        <div class='wa_btn wa_stop' data-wa='stop'></div>
+                        <div class='wa_btn wa_next' data-wa='next'></div>
+                        <div class='wa_btn wa_eject' data-wa='eject'></div>
+                        <div class='wa_btn wa_shuffle' data-wa='shuffle'></div>
+                        <div class='wa_btn wa_repeat' data-wa='repeat'></div>
+
+                        <div class='wa_shade_time' data-wa='time'></div>
+                        <div class='wa_shade_pos'><div class='wa_shade_thumb'></div></div>
+                        <div class='wa_shade_btns'>
+                            ${hit('prev')}${hit('play')}${hit('pause')}${hit('stop')}${hit('next')}${hit('eject')}
+                        </div>
+                    </div>
+
+                    <div class='wa_pl'>
+                        <div class='wa_pl_top'>
+                            <div class='wa_plt_left'></div><div class='wa_plt_fill'></div>
+                            <div class='wa_plt_title'></div><div class='wa_plt_fill'></div>
+                            <div class='wa_plt_right'></div>
+                            ${hit('pl_shade', 'wa_pl_shade_btn')}${hit('playlist', 'wa_pl_close')}
+                        </div>
+                        <div class='wa_pl_middle'>
+                            <div class='wa_pl_side'></div>
+                            <div class='wa_pl_list'></div>
+                            <div class='wa_pl_scroll'><div class='wa_pl_thumb' data-wa='scroll'></div></div>
+                        </div>
+                        <div class='wa_pl_bottom'>
+                            <div class='wa_plb_left'></div><div class='wa_plb_right'></div>
+                            ${hit('menu', 'wa_pl_menu')}${hit('menu', 'wa_pl_menu')}${hit('menu', 'wa_pl_menu')}${hit('menu', 'wa_pl_menu')}${hit('menu', 'wa_pl_menu wa_pl_listopts')}
+                            <div class='wa_pl_total'></div>
+                            <div class='wa_pl_mini'>
+                                ${hit('prev')}${hit('play')}${hit('pause')}${hit('stop')}${hit('next')}${hit('eject')}
+                            </div>
+                            <div class='wa_pl_time' data-wa='time'></div>
+                            <div class='wa_pl_grip' data-wa='grip'></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `
+    }
+
+    bind(node) {
+        super.bind(node)
+        this.bindScroll(node)
+
+        // пока шрифт не загружен, текст не нарисовать; после загрузки всё перерисовывается
+        this.text_image = new Image()
+        this.text_image.src = this.path + 'text.png'
+        this.text_image.decode().then(() => {
+            this.marquee_text = null
+            this.update()
+        }).catch(() => {})
+    }
+
+    // родной скроллбар спрятан, ползунок рисуется спрайтом из pledit.bmp
+    bindScroll(node) {
+        const list = node.find('.wa_pl_list').nodes[0]
+        const thumb = node.find('.wa_pl_thumb').nodes[0]
+        const tracks = () => list.querySelector('#aj_player_tracks')
+
+        this.syncScroll = () => {
+            const el = tracks()
+            if(!el) {
+                return
+            }
+
+            const max = el.scrollHeight - el.clientHeight
+            thumb.style.top = `${max > 0 ? Math.round(el.scrollTop / max * (list.offsetHeight - 18)) : 0}px`
+        }
+        list.addEventListener('scroll', this.syncScroll, true)
+
+        thumb.addEventListener('pointerdown', (e) => {
+            const el = tracks()
+            if(!el) {
+                return
+            }
+
+            e.preventDefault()
+            thumb.setPointerCapture(e.pointerId)
+            const start_y = e.clientY
+            const start_top = thumb.offsetTop
+            const move = (ev) => {
+                const room = list.offsetHeight - 18
+                const top = Math.min(room, Math.max(0, start_top + ev.clientY - start_y))
+                el.scrollTop = room > 0 ? top / room * (el.scrollHeight - el.clientHeight) : 0
+            }
+            const up = () => {
+                thumb.removeEventListener('pointermove', move)
+                thumb.removeEventListener('pointerup', up)
+            }
+
+            thumb.addEventListener('pointermove', move)
+            thumb.addEventListener('pointerup', up)
+        })
+    }
+
+    update() {
+        super.update()
+        this.syncScroll?.()
+    }
+
+    // буквы других алфавитов в text.bmp не нарисованы, такие строки пишутся обычным шрифтом
+    needsFont(text) {
+        return [...text].some(char => /\p{L}/u.test(char) && !WA_FONT[char.normalize('NFD')[0].toUpperCase()])
+    }
+
+    drawText(text) {
+        const chars = [...text]
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.max(1, chars.length * 5)
+        canvas.height = 6
+        canvas.className = 'wa_text'
+
+        const img = this.text_image
+        if(img && img.complete && img.naturalWidth > 0) {
+            const ctx = canvas.getContext('2d')
+            chars.forEach((char, i) => {
+                const [col, row] = WA_FONT[char.normalize('NFD')[0].toUpperCase()] ?? WA_FONT[' ']
+                ctx.drawImage(img, col * 5, row * 6, 5, 6, i * 5, 0, 5, 6)
+            })
+        }
+
+        return canvas
+    }
+
+    setText(el, text) {
+        el.empty()
+        if(text) {
+            el.append(this.drawText(text))
+        }
+    }
+
+    renderTime(node, text) {
+        const chars = [text[0], text[1], text[2], text[4], text[5]]
+        node.find('.wa_time .wa_digit').each((el, i) => {
+            const char = chars[i]
+            if(i == 0) {
+                el.classList.toggle('wa_on', char == '-')
+                return
+            }
+
+            el.classList.toggle('wa_on', char >= '0' && char <= '9')
+            el.style.backgroundPosition = `-${Number(char) * 9}px 0`
+        })
+    }
+
+    renderStatus(node, status) {}
+
+    time(time) {
+        super.time(time)
+
+        const track = window.player.currentTrack
+        const ps = track && this.status != 'stop' ? Math.min(1, time / track.length) : 0
+        this.node.find('.wa_shade_thumb').attr('style', `left:${Math.round(ps * 14)}px`)
+    }
+
+    volume(volume) {
+        // в volume.bmp 28 кадров полосы с шагом 15px
+        this.node.find('.wa_volume').attr('style', `background-position: 0 -${Math.round(volume * 27) * 15}px`)
+    }
+
+    renderMarquee(text, scroll) {
+        const box = this.node.find('.wa_marquee')
+        if(box.length == 0) {
+            return
+        }
+
+        const font = this.needsFont(text)
+        box.toggleClass('wa_marquee_font', font)
+        box.empty()
+        if(font) {
+            box.append(`<span class='wa_marquee_text'></span>`)
+            super.renderMarquee(text, scroll)
+            return
+        }
+
+        this.marquee_measured = box.nodes[0].clientWidth > 0
+        if(!scroll || [...text].length * 5 <= 154) {
+            box.append(this.drawText(text))
+            return
+        }
+
+        // как в оригинале, строка сдвигается по одному символу
+        const loop = `${text}  ***  `
+        const steps = [...loop].length
+        const canvas = this.drawText(loop + loop)
+        canvas.classList.add('wa_scroll')
+        canvas.style.animationDuration = `${(steps * 0.15).toFixed(2)}s`
+        canvas.style.animationTimingFunction = `steps(${steps})`
+        box.append(canvas)
+    }
+}
+
+// конфиги собраны из viscolor.txt, pledit.txt и region.txt каждого скина
+const WA_BITMAP_SKINS = {
+    xbox: {"title": "XBOX", "numsEx": false, "volumeThumb": true, "balanceThumb": true, "textColor": "#5a8c10", "playlist": {"normal": "#669900", "current": "#66CC00", "bg": "#000000", "selected": "#333333", "font": "Arial"}, "vis": ["#30302f", "#30302f", "#30302f", "#5a8c10", "#5a8c10", "#5a8c10", "#5a8c10", "#5a8c10", "#5a8c10", "#5a8c10", "#5a8c10", "#5a8c10", "#5a8c10", "#5a8c10", "#5a8c10", "#5a8c10", "#5a8c10", "#5a8c10", "#30302f", "#5a8c10", "#5a8c10", "#5a8c10", "#5a8c10", "#5a8c10"], "region": null},
+    nucleo: {"title": "Nucleo Alien Mind", "numsEx": false, "volumeThumb": false, "balanceThumb": false, "textColor": "#ff8a00", "playlist": {"normal": "#B36100", "current": "#FF8A00", "bg": "#000000", "selected": "#522C00", "font": "MS Sans Serif"}, "vis": ["#000000", "#000000", "#ff8b00", "#ff9000", "#ff9e00", "#ffa600", "#ffa800", "#ffa400", "#ff9700", "#ff8c00", "#ff8a00", "#f38300", "#e27a00", "#cf7000", "#bf6800", "#af5e00", "#a05700", "#945000", "#ff8a00", "#e27a00", "#bf6800", "#a05700", "#945000", "#bf6800"], "region": null},
+    gamecube: {"title": "GameCube Amp", "numsEx": true, "volumeThumb": false, "balanceThumb": false, "textColor": "#ffffff", "playlist": {"normal": "#5271C0", "current": "#FFFFFF", "bg": "#000000", "selected": "#000080", "font": "Arial"}, "vis": ["#000000", "#000000", "#0f2050", "#0f1850", "#103060", "#1f4870", "#1f406f", "#1f386f", "#20587f", "#20507f", "#205070", "#2f708f", "#2f6880", "#2f6080", "#3f889f", "#4098a0", "#3f8090", "#4fa8af", "#308090", "#30788f", "#307894", "#00084f", "#949ca5", "#969696"], "region": null},
+    classified: {"title": "Winamp5 Classified", "numsEx": true, "volumeThumb": true, "balanceThumb": true, "textColor": "#ffffff", "playlist": {"normal": "#FFFFFF", "current": "#BBD2FF", "bg": "#1C3D7D", "selected": "#6788C9", "font": "Arial"}, "vis": ["#274987", "#002263", "#ffffff", "#274987", "#ffffff", "#274987", "#ffffff", "#274987", "#ffffff", "#274987", "#ffffff", "#274987", "#ffffff", "#274987", "#ffffff", "#274987", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff"], "region": "M5 0L270 0L270 115L5 115ZM3 1L272 1L272 114L3 114ZM2 2L273 2L273 113L2 113ZM1 3L274 3L274 112L1 112ZM0 5L275 5L275 110L0 110ZM4 114L271 114L271 115L4 115ZM6 115L269 115L269 116L6 116Z"},
+}
+
+for(const [name, config] of Object.entries(WA_BITMAP_SKINS)) {
+    window.ajaxPlayerSkins[name] = new WinampBitmapSkin(name, config)
 }
