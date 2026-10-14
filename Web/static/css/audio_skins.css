@@ -1413,3 +1413,383 @@
     height: 20px;
     cursor: ns-resize;
 }
+
+/* скин MMD3 из winamp 3: элементы раскладываются по координатам из xml, картинки приходят через css-переменные темы */
+
+#ajax_audio_player.mm_skin,
+#ajax_audio_player.mm_skin.ui-draggable-dragging {
+    width: 381px;
+    height: auto;
+    padding: 0;
+    background: none;
+    border-radius: 0;
+    box-shadow: none;
+    user-select: none;
+}
+
+#ajax_audio_player.mm_skin.wa_shaded {
+    width: 800px;
+}
+
+#ajax_audio_player.mm_skin.mm_loading {
+    visibility: hidden;
+}
+
+#ajax_audio_player.mm_skin #aj_player {
+    height: auto;
+    position: relative;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+#ajax_audio_player.mm_skin span {
+    padding: 0;
+    color: inherit;
+    font-weight: inherit;
+}
+
+#ajax_audio_player.mm_skin .tip_result {
+    display: none;
+}
+
+#ajax_audio_player.mm_skin .mm_el {
+    position: absolute;
+    background: var(--bg);
+}
+
+/* как ghost-слои в winamp: картинки без действия пропускают мышь к кнопкам под ними и к окну для перетаскивания */
+#ajax_audio_player.mm_skin .mm_el {
+    pointer-events: none;
+}
+
+#ajax_audio_player.mm_skin .mm_el[data-wa],
+#ajax_audio_player.mm_skin .mm_slider,
+#ajax_audio_player.mm_skin .mm_volknob,
+#ajax_audio_player.mm_skin .mm_switcher,
+#ajax_audio_player.mm_skin .mm_shade_bg,
+#ajax_audio_player.mm_skin .mm_ctitems,
+#ajax_audio_player.mm_skin .mm_pl_content,
+#ajax_audio_player.mm_skin .mm_pl_thumb {
+    pointer-events: auto;
+}
+
+#ajax_audio_player.mm_skin .mm_el[data-wa],
+#ajax_audio_player.mm_skin .mm_volknob {
+    cursor: pointer;
+}
+
+#ajax_audio_player.mm_skin .mm_el[data-down]:active {
+    background: var(--bg-down, var(--bg));
+}
+
+#ajax_audio_player.mm_skin canvas {
+    display: block;
+}
+
+#ajax_audio_player.mm_skin .mm_main {
+    position: relative;
+    width: 381px;
+    height: 216px;
+}
+
+#ajax_audio_player.mm_skin.wa_shaded .mm_main,
+#ajax_audio_player.mm_skin .mm_shadebar,
+#ajax_audio_player.mm_skin.wa_pl_hidden .mm_pl {
+    display: none;
+}
+
+#ajax_audio_player.mm_skin.wa_shaded .mm_shadebar {
+    display: block;
+    position: relative;
+    width: 800px;
+    height: 23px;
+}
+
+/* текст из растровых шрифтов */
+
+#ajax_audio_player.mm_skin .mm_text {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#ajax_audio_player.mm_skin .mm_text[data-align='center'] {
+    justify-content: center;
+}
+
+#ajax_audio_player.mm_skin .mm_text.mm_scrolling {
+    justify-content: flex-start;
+}
+
+#ajax_audio_player.mm_skin .mm_text canvas.wa_scroll {
+    flex: none;
+    animation-name: wa_marquee;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
+
+#ajax_audio_player.mm_skin.wa_pause .mm_time canvas,
+#ajax_audio_player.mm_skin.wa_pause .mm_shade_time canvas {
+    animation: wa_blink 1s steps(1) infinite;
+}
+
+/* состояния */
+
+#ajax_audio_player.mm_skin .mm_status_play,
+#ajax_audio_player.mm_skin .mm_status_pause,
+#ajax_audio_player.mm_skin .mm_status_stop,
+#ajax_audio_player.mm_skin .wa_mono,
+#ajax_audio_player.mm_skin .wa_stereo,
+#ajax_audio_player.mm_skin .mm_led_repeat,
+#ajax_audio_player.mm_skin .mm_led_shuffle,
+#ajax_audio_player.mm_skin .mm_visled {
+    display: none;
+}
+
+#ajax_audio_player.mm_skin.wa_play .mm_status_play,
+#ajax_audio_player.mm_skin.wa_pause .mm_status_pause,
+#ajax_audio_player.mm_skin.wa_stop .mm_status_stop,
+#ajax_audio_player.mm_skin .wa_mono.wa_on,
+#ajax_audio_player.mm_skin .wa_stereo.wa_on,
+#ajax_audio_player.mm_skin.mm_repeat_on .mm_led_repeat,
+#ajax_audio_player.mm_skin.mm_shuffle_on .mm_led_shuffle {
+    display: block;
+}
+
+#ajax_audio_player.mm_skin.mm_repeat_on .mm_s_repeat,
+#ajax_audio_player.mm_skin.mm_shuffle_on .mm_s_shuffle,
+#ajax_audio_player.mm_skin:not(.wa_pl_hidden) .mm_s_pl {
+    background: var(--bg-active);
+}
+
+#ajax_audio_player.mm_skin .mm_glow {
+    opacity: 0;
+    transition: opacity .8s ease-out;
+    pointer-events: none;
+}
+
+#ajax_audio_player.mm_skin.wa_play .mm_glow {
+    opacity: 1;
+    transition-duration: .4s;
+}
+
+#ajax_audio_player.mm_skin .mm_display2 {
+    opacity: .2;
+    pointer-events: none;
+}
+
+/* режимы визуализации: 1-6 анимации по уровню, 7 без визуализации, 8 спектр, 9 осциллограф */
+
+#ajax_audio_player.mm_skin .mm_dis1,
+#ajax_audio_player.mm_skin .mm_dis2,
+#ajax_audio_player.mm_skin .mm_vis {
+    display: none;
+}
+
+#ajax_audio_player.mm_skin.mm_vis_7 .mm_dis1,
+#ajax_audio_player.mm_skin.mm_vis_8 .mm_dis1,
+#ajax_audio_player.mm_skin.mm_vis_9 .mm_dis1,
+#ajax_audio_player.mm_skin.mm_vis_8 .mm_dis2,
+#ajax_audio_player.mm_skin.mm_vis_8 .mm_vis,
+#ajax_audio_player.mm_skin.mm_vis_9 .mm_vis {
+    display: block;
+}
+
+#ajax_audio_player.mm_skin.mm_vis_7 .mm_dis3,
+#ajax_audio_player.mm_skin.mm_vis_8 .mm_dis3,
+#ajax_audio_player.mm_skin.mm_vis_7 .mm_dis4,
+#ajax_audio_player.mm_skin.mm_vis_8 .mm_dis4,
+#ajax_audio_player.mm_skin.mm_vis_9 .mm_dis4,
+#ajax_audio_player.mm_skin.mm_vis_7 .mm_visani,
+#ajax_audio_player.mm_skin.mm_vis_8 .mm_visani,
+#ajax_audio_player.mm_skin.mm_vis_9 .mm_visani {
+    display: none;
+}
+
+#ajax_audio_player.mm_skin.mm_vis_1 .mm_visled_1,
+#ajax_audio_player.mm_skin.mm_vis_2 .mm_visled_2,
+#ajax_audio_player.mm_skin.mm_vis_3 .mm_visled_3,
+#ajax_audio_player.mm_skin.mm_vis_4 .mm_visled_4,
+#ajax_audio_player.mm_skin.mm_vis_5 .mm_visled_5,
+#ajax_audio_player.mm_skin.mm_vis_6 .mm_visled_6,
+#ajax_audio_player.mm_skin.mm_vis_7 .mm_visled_7,
+#ajax_audio_player.mm_skin.mm_vis_8 .mm_visled_8,
+#ajax_audio_player.mm_skin.mm_vis_9 .mm_visled_9 {
+    display: block;
+}
+
+/* шторки */
+
+#ajax_audio_player.mm_skin .mm_drawer,
+#ajax_audio_player.mm_skin .mm_ctlayer,
+#ajax_audio_player.mm_skin .mm_ctlist {
+    display: none;
+}
+
+#ajax_audio_player.mm_skin .mm_drawer {
+    transition: left .5s ease-in-out;
+}
+
+#ajax_audio_player.mm_skin .mm_drawer.mm_open {
+    left: 350px !important;
+}
+
+#ajax_audio_player.mm_skin.mm_drawer_eq_shown .mm_drawer_eq,
+#ajax_audio_player.mm_skin.mm_drawer_vis_shown .mm_drawer_vis,
+#ajax_audio_player.mm_skin.mm_drawer_ct_shown .mm_drawer_ct,
+#ajax_audio_player.mm_skin.mm_drawer_ct_shown .mm_ctlayer,
+#ajax_audio_player.mm_skin.mm_drawer_ct_ready .mm_ctlist {
+    display: block;
+}
+
+#ajax_audio_player.mm_skin.mm_drawers_open .mm_onoff {
+    display: none;
+}
+
+#ajax_audio_player.mm_skin .mm_ctitems {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 165px;
+    height: 100px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #8a8a8a #1e1e1e;
+}
+
+#ajax_audio_player.mm_skin .mm_ctitem {
+    padding: 0 4px;
+    font-size: 11px;
+    line-height: 14px;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+#ajax_audio_player.mm_skin .mm_ctitem.mm_selected {
+    background: rgb(0, 67, 120);
+}
+
+#ajax_audio_player.mm_skin .mm_ctitem.mm_current {
+    font-weight: bold;
+}
+
+/* ползунки */
+
+#ajax_audio_player.mm_skin .mm_slider .selectableTrack {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+#ajax_audio_player.mm_skin .mm_slider .wa_thumb_area {
+    position: relative;
+    width: calc(100% - var(--thumb-w));
+    height: 100%;
+}
+
+#ajax_audio_player.mm_skin .mm_slider .slider {
+    position: absolute;
+    top: 0;
+    width: var(--thumb-w);
+    height: var(--thumb-h);
+    background: var(--thumb);
+    cursor: pointer;
+}
+
+#ajax_audio_player.mm_skin .mm_slider .slider:active {
+    background: var(--thumb-down);
+}
+
+#ajax_audio_player.mm_skin #aj_player_volume {
+    position: absolute;
+    padding: 0;
+}
+
+/* окно плейлиста в рамке скина */
+
+#ajax_audio_player.mm_skin .mm_pl {
+    position: relative;
+    width: 381px;
+    box-sizing: border-box;
+    padding: 39px 28px 45px;
+}
+
+#ajax_audio_player.mm_skin .mm_pl_title .mm_pl_title_text {
+    position: absolute;
+    inset: 0;
+    justify-content: center;
+}
+
+#ajax_audio_player.mm_skin .mm_pl_content {
+    position: relative;
+    display: flex;
+}
+
+#ajax_audio_player.mm_skin .wa_pl_list {
+    flex: 1;
+    min-width: 0;
+}
+
+#ajax_audio_player.mm_skin .mm_pl_scroll {
+    position: relative;
+    width: 13px;
+}
+
+#ajax_audio_player.mm_skin #aj_player_tracks,
+#ajax_audio_player.mm_skin:hover #aj_player_tracks,
+#ajax_audio_player.mm_skin.ui-draggable-dragging #aj_player_tracks {
+    display: block;
+    width: auto;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    border-radius: 0;
+    background: none;
+    overflow-y: scroll;
+    scrollbar-width: none;
+}
+
+#ajax_audio_player.mm_skin #aj_player_tracks::-webkit-scrollbar {
+    display: none;
+}
+
+#ajax_audio_player.mm_skin #aj_player_tracks .aj_track {
+    display: flex;
+    gap: 6px;
+    padding: 0 3px;
+    font-size: 11px;
+    line-height: 15px;
+    color: #fff;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+#ajax_audio_player.mm_skin #aj_player_tracks .aj_track:hover {
+    background: rgb(0, 67, 120);
+}
+
+#ajax_audio_player.mm_skin #aj_player_tracks .aj_track.selected {
+    background: none;
+    color: rgb(248, 248, 248);
+    border-color: rgb(120, 178, 193);
+}
+
+#ajax_audio_player.mm_skin #aj_player_tracks .aj_track.selected:hover {
+    background: rgb(0, 67, 120);
+}
+
+#ajax_audio_player.mm_skin #aj_player_tracks .aj_track .wa_pl_name,
+#ajax_audio_player.mm_skin #aj_player_tracks .aj_track .wa_pl_len {
+    color: inherit;
+    white-space: nowrap;
+}
+
+#ajax_audio_player.mm_skin #aj_player_tracks .aj_track .wa_pl_name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
