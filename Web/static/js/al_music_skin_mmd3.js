@@ -61,7 +61,7 @@ function mmSlider(cls, x, y, w, h, thumb, opts = {}) {
 
 class WinampModernSkin extends WinampSkin {
     title = 'MMD3'
-    cancel = '[data-wa], .mm_slider, .mm_volknob, #aj_player_tracks, .mm_ctlist, .mm_pl_scroll'
+    cancel = '[data-wa], .mm_slider, .mm_volknob, #aj_player_tracks, .mm_ctlist, .mm_pl_scroll, .mm_plshade'
 
     images = {}
     canvases = {}
@@ -295,6 +295,9 @@ class WinampModernSkin extends WinampSkin {
                         ${mmEl('wa_pl_grip', 'component.resize', 0, 0, { pos: 'right:3px;bottom:4px', wa: 'grip' })}
                         ${mmEl('mm_pl_title', 'component.titlebg', 119, 0, { w: 68, h: 21, tile: 1, html: `<div class='mm_text mm_pl_title_text' data-font='player.ticker.font7'></div>` })}
                         ${mmButton('', 'component.button.close', 348, 5, 'playlist')}
+                        ${mmEl('mm_pl_switcher', null, 35, 0, { w: 294, h: 30 })}
+                        ${mmEl('', 'pl.button.bg', 331, 2)}
+                        ${mmButton('', 'pl.button.small', 331, 2, 'pl_shade')}
                         ${mmButton('', 'component.player.prev', 0, 0, 'prev', { pos: 'left:20px;bottom:23px' })}
                         ${mmButton('', 'component.player.next', 0, 0, 'next', { pos: 'left:91px;bottom:12px' })}
                         ${mmButton('', 'component.player.pause', 0, 0, 'pause', { pos: 'left:73px;bottom:12px' })}
@@ -313,6 +316,24 @@ class WinampModernSkin extends WinampSkin {
                             </div>
                         </div>
                     </div>
+
+                    <div class='mm_plshade'>
+                        ${mmEl('', 'pl.left', 0, 0)}
+                        ${mmEl('', 'pl.right', 324, 0)}
+                        ${mmEl('', 'pl.left.front', 0, 0)}
+                        ${mmEl('', 'pl.middle', 26, 0, { w: 298, tile: 1 })}
+                        ${mmEl('', 'pl.right.front', 324, 0)}
+                        ${mmEl('', 'pl.left.display', 14, 4)}
+                        ${mmEl('', 'pl.middle.display', 39, 4, { w: 271, tile: 1 })}
+                        ${mmEl('', 'pl.right.display', 290, 4)}
+                        ${mmEl('mm_text mm_plshade_title', null, 16, 2, { w: 292, h: 21, font: 'player.ticker.font3' })}
+                        ${mmEl('mm_text mm_plshade_length', null, 305, 2, { w: 30, h: 21, font: 'player.ticker.font3', align: 'right' })}
+                        ${mmEl('', 'pl.left.display.ov', 14, 4)}
+                        ${mmEl('', 'pl.middle.display.ov', 39, 4, { w: 271, tile: 1 })}
+                        ${mmEl('', 'pl.right.display.ov', 290, 4)}
+                        ${mmButton('', 'playershade.button.big2', 354, 4, 'pl_shade')}
+                        ${mmButton('', 'playershade.button.close', 365, 4, 'playlist')}
+                    </div>
                 </div>
             </div>
         `
@@ -325,6 +346,13 @@ class WinampModernSkin extends WinampSkin {
 
         node.find('.mm_switcher').on('dblclick', () => this.action('shade'))
         node.find('.mm_shade_bg').on('dblclick', () => this.action('shade'))
+        node.find('.mm_pl_switcher').on('dblclick', () => this.action('pl_shade'))
+        node.find('.mm_plshade').on('dblclick', (e) => {
+            if(!e.target.closest('[data-wa]')) {
+                this.action('pl_shade')
+            }
+        })
+        this.bindPlaylistDrag(node)
         this.bindKnob(node.find('.mm_volknob').nodes[0])
         this.bindSlider(node.find('.mm_volbar').nodes[0], (ps) => {
             this.audio.volume = ps
@@ -344,6 +372,7 @@ class WinampModernSkin extends WinampSkin {
             this.styleSprites(node.nodes[0])
             this.renderThemeList(node)
             await this.applyTheme(this.theme)
+            this.placePlaylist()
             node.removeClass('mm_loading')
         }).catch(e => console.error('MMD3 skin failed to load', e))
     }
@@ -607,6 +636,89 @@ class WinampModernSkin extends WinampSkin {
         })
     }
 
+    // свёрнутый плейлист прилипает к плееру, пока его не оттащат; оторванный стоит на месте при перетаскивании плеера
+    bindPlaylistDrag(node) {
+        const el = node.nodes[0]
+        const bar = node.find('.mm_plshade').nodes[0]
+        const [x, y] = this.option('mmd3_pl_pos', '').split(',').map(Number)
+        this.pl_pos = y >= 0 && node.hasClass('wa_pl_shaded') ? [Math.min(x, window.innerWidth - 381), Math.min(y, window.innerHeight - 23)].map(v => Math.max(0, v)) : null
+        this.placePlaylist()
+
+        // jquery ui сдвигает плеер уже после события drag
+        $(el).on('drag dragstop', () => queueMicrotask(() => this.placePlaylist()))
+
+        bar.addEventListener('pointerdown', (e) => {
+            if(e.button != 0 || e.target.closest('[data-wa]')) {
+                return
+            }
+
+            e.preventDefault()
+            bar.setPointerCapture(e.pointerId)
+            const rect = bar.getBoundingClientRect()
+            const grab_x = e.clientX - rect.left
+            const grab_y = e.clientY - rect.top
+            let docked = !this.pl_pos
+            const move = (ev) => {
+                const [dock_x, dock_y] = this.dockPoint()
+                const x = Math.max(0, Math.min(ev.clientX - grab_x, window.innerWidth - rect.width))
+                const y = Math.max(0, Math.min(ev.clientY - grab_y, window.innerHeight - rect.height))
+                docked = Math.abs(x - dock_x) <= 10 && Math.abs(y - dock_y) <= 10
+                this.pl_pos = docked ? [dock_x, dock_y] : [x, y]
+                this.placePlaylist()
+            }
+            const up = () => {
+                bar.removeEventListener('pointermove', move)
+                bar.removeEventListener('pointerup', up)
+                if(docked) {
+                    this.pl_pos = null
+                }
+
+                this.setOption('mmd3_pl_pos', this.pl_pos ? this.pl_pos.map(Math.round).join(',') : '')
+                this.placePlaylist()
+            }
+
+            bar.addEventListener('pointermove', move)
+            bar.addEventListener('pointerup', up)
+        })
+    }
+
+    dockRight() {
+        return this.node.hasClass('wa_shaded') && window.innerWidth >= 800 + 381
+    }
+
+    // место стыковки: под обычным плеером, справа от свёрнутого или под ним, если окно узкое
+    dockPoint() {
+        const el = this.node.nodes[0]
+        const left = parseFloat(el.style.left) || 0
+        const top = parseFloat(el.style.top) || 0
+        if(this.dockRight()) {
+            return [left + 800, top]
+        }
+
+        return [left, top + (this.node.hasClass('wa_shaded') ? 23 : 216)]
+    }
+
+    placePlaylist() {
+        const node = this.node
+        const el = node.nodes[0]
+        const bar = node.find('.mm_plshade').nodes[0]
+        if(!el || !bar) {
+            return
+        }
+
+        const shown = node.hasClass('wa_pl_shaded') && !node.hasClass('wa_pl_hidden')
+        node.toggleClass('mm_pl_floating', Boolean(this.pl_pos))
+        node.toggleClass('mm_pl_right', shown && !this.pl_pos && this.dockRight())
+        bar.style.left = this.pl_pos ? `${this.pl_pos[0] - (parseFloat(el.style.left) || 0)}px` : ''
+        bar.style.top = this.pl_pos ? `${this.pl_pos[1] - (parseFloat(el.style.top) || 0)}px` : ''
+    }
+
+    layout() {
+        this.placePlaylist()
+        this.clampPosition()
+        this.placePlaylist()
+    }
+
     bindPlaylistScroll(node) {
         const list = node.find('.wa_pl_list').nodes[0]
         const thumb = node.find('.mm_pl_thumb').nodes[0]
@@ -690,9 +802,17 @@ class WinampModernSkin extends WinampSkin {
                 setTimeout(() => node.removeClass('mm_shuffle_on'), 1500)
                 await super.action(name, target, e)
                 break
-            case 'shade':
+            // свёрнутый заново плейлист снова пристыкован
+            case 'pl_shade':
+                this.pl_pos = null
+                this.setOption('mmd3_pl_pos', '')
                 await super.action(name, target, e)
-                this.clampPosition()
+                this.layout()
+                break
+            case 'shade':
+            case 'playlist':
+                await super.action(name, target, e)
+                this.layout()
                 break
             default:
                 await super.action(name, target, e)
@@ -800,6 +920,10 @@ class WinampModernSkin extends WinampSkin {
 
         node.toggleClass('mm_repeat_on', this.audio.loop)
         this.syncScroll?.()
+
+        const track = window.player.currentTrack
+        this.setText(node.find('.mm_plshade_title'), track ? `${track.performer} - ${track.name}` : '')
+        this.setText(node.find('.mm_plshade_length'), track ? waLength(track.length) : '')
     }
 
     renderStatus(node, status) {}

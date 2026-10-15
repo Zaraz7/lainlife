@@ -1465,6 +1465,7 @@
 #ajax_audio_player.mm_skin .mm_slider,
 #ajax_audio_player.mm_skin .mm_volknob,
 #ajax_audio_player.mm_skin .mm_switcher,
+#ajax_audio_player.mm_skin .mm_pl_switcher,
 #ajax_audio_player.mm_skin .mm_shade_bg,
 #ajax_audio_player.mm_skin .mm_ctitems,
 #ajax_audio_player.mm_skin .mm_pl_content,
@@ -1504,6 +1505,37 @@
     height: 23px;
 }
 
+/* свёрнутый плейлист: под плеером, справа от свёрнутого плеера или отдельно там, куда его оттащили */
+
+#ajax_audio_player.mm_skin .mm_plshade {
+    display: none;
+    position: relative;
+    width: 381px;
+    height: 23px;
+}
+
+#ajax_audio_player.mm_skin.wa_pl_shaded .mm_pl {
+    display: none;
+}
+
+#ajax_audio_player.mm_skin.wa_pl_shaded:not(.wa_pl_hidden) .mm_plshade {
+    display: block;
+}
+
+#ajax_audio_player.mm_skin.wa_shaded.mm_pl_right {
+    width: 1181px;
+}
+
+#ajax_audio_player.mm_skin.mm_pl_right .mm_plshade {
+    position: absolute;
+    left: 800px;
+    top: 0;
+}
+
+#ajax_audio_player.mm_skin.mm_pl_floating .mm_plshade {
+    position: absolute;
+}
+
 /* текст из растровых шрифтов */
 
 #ajax_audio_player.mm_skin .mm_text {
@@ -1515,6 +1547,10 @@
 
 #ajax_audio_player.mm_skin .mm_text[data-align='center'] {
     justify-content: center;
+}
+
+#ajax_audio_player.mm_skin .mm_text[data-align='right'] {
+    justify-content: flex-end;
 }
 
 #ajax_audio_player.mm_skin .mm_text.mm_scrolling {
