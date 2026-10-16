@@ -1380,19 +1380,23 @@ u(document).on("drop", '.audiosContainer', function(e) {
     }
 })
 
-// перетаскивание треков в своём списке аудио
+// перетаскивание треков в своём списке аудио и в редакторе плейлиста
 let audioDrag = null
 let audioJustDragged = false
 
-const reorderableAudios = (container) => [...container.querySelectorAll('.scroll_container > .scroll_node')]
+const REORDER_CONTAINERS = '.audiosContainer[data-reorder-owner], .PE_audios'
+
+const reorderableAudios = (container) => container.classList.contains('PE_audios')
+    ? [...container.querySelectorAll(':scope > .vertical-attachment')]
+    : [...container.querySelectorAll('.scroll_container > .scroll_node')]
 
 document.addEventListener('pointerdown', e => {
-    const container = e.target.closest('.audiosContainer[data-reorder-owner]')
-    const node = e.target.closest('.scroll_node')
-    if(!container || !node || e.button !== 0 || e.pointerType === 'touch' || e.target.closest('.subTracks, .lyrics')) return
+    const container = e.target.closest(REORDER_CONTAINERS)
+    const node = e.target.closest('.scroll_node, .vertical-attachment')
+    if(!container || !node || e.button !== 0 || e.pointerType === 'touch' || e.target.closest('.subTracks, .lyrics, .vertical-attachment-remove')) return
 
     const nodes = reorderableAudios(container)
-    if(nodes.length < 2) return
+    if(nodes.length < 2 || !nodes.includes(node)) return
 
     e.preventDefault()
     const rects = nodes.map(el => el.getBoundingClientRect())
@@ -1476,6 +1480,9 @@ const finishAudioDrag = () => {
         const anchor = nodes[target]
         target > start ? anchor.after(node) : anchor.before(node)
 
+        // редактор плейлиста сохраняет порядок по кнопке «Сохранить»
+        if(!container.dataset.reorderOwner) return
+
         const order = reorderableAudios(container).map(el => Number(el.querySelector('.audioEmbed').dataset.realid))
         if(window.player && window.player.isAtCurrentContextPage()) {
             window.player.reorderTracks(order)
@@ -1502,7 +1509,7 @@ document.addEventListener('pointercancel', finishAudioDrag)
 
 // клик после перетаскивания не должен запускать трек
 document.addEventListener('click', e => {
-    if(!audioJustDragged || !e.target.closest('.audiosContainer[data-reorder-owner]')) return
+    if(!audioJustDragged || !e.target.closest(REORDER_CONTAINERS)) return
 
     e.preventDefault()
     e.stopPropagation()
@@ -2583,28 +2590,6 @@ u(document).on("drop", "#upload_container", function (e) {
 
 u(document).on('click', '#_playlistAppendTracks', (e) => {
     showAudioAttachment('playlist', u('.PE_wrapper').nodes[0])
-})
-
-u(document).on('drop', '.PE_audios .vertical-attachment', (e) => {
-    const current = u('.upload-item.currently_dragging')
-    if(e.dataTransfer.types.length < 1 || e.dataTransfer.types.includes('text/uri-list')) {
-        e.preventDefault()
-
-        const target = u(e.target).closest('.upload-item')
-        u('.dragged').removeClass('dragged')
-        current.removeClass('currently_dragging')
-
-        if(!current.closest('.vertical-attachment').length < 1 && target.closest('.vertical-attachment').length < 1
-         || current.closest('.vertical-attachment').length < 1 && !target.closest('.vertical-attachment').length < 1) {
-            return
-        }
-
-        const first_html = target.nodes[0].outerHTML
-        const second_html = current.nodes[0].outerHTML 
-
-        current.nodes[0].outerHTML = first_html
-        target.nodes[0].outerHTML = second_html
-    }
 })
 
 u(document).on("change", `input[name='cover']`, (e) => {

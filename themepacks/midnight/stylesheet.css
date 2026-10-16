@@ -824,7 +824,8 @@ ul {
     color: #6f82a8;
 }
 
-.audiosContainer.audios-dragging .scroll_node.dragging {
+.audiosContainer.audios-dragging .scroll_node.dragging,
+.PE_audios.audios-dragging .vertical-attachment.dragging {
     background-color: #272138 !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, .5);
 }

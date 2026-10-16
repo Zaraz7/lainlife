@@ -1218,20 +1218,24 @@
 }
 
 /* Audio reordering */
-.audiosContainer[data-reorder-owner] .scroll_node {
+.audiosContainer[data-reorder-owner] .scroll_node,
+.PE_audios .vertical-attachment {
     position: relative;
     cursor: grab;
 }
 
-.audiosContainer.audios-dragging {
+.audiosContainer.audios-dragging,
+.PE_audios.audios-dragging {
     user-select: none;
 }
 
-.audiosContainer.audios-dragging .scroll_node {
+.audiosContainer.audios-dragging .scroll_node,
+.PE_audios.audios-dragging .vertical-attachment {
     transition: transform .15s ease;
 }
 
-.audiosContainer.audios-dragging .scroll_node.dragging {
+.audiosContainer.audios-dragging .scroll_node.dragging,
+.PE_audios.audios-dragging .vertical-attachment.dragging {
     cursor: grabbing;
     z-index: 5;
     transition: none;
@@ -1239,6 +1243,7 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, .2);
 }
 
-.audiosContainer.audios-dragging .scroll_node.dropping {
+.audiosContainer.audios-dragging .scroll_node.dropping,
+.PE_audios.audios-dragging .vertical-attachment.dropping {
     z-index: 5;
 }
