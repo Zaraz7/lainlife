@@ -42,7 +42,7 @@
         <img n:if="$settings['pinned']" src="/assets/packages/static/openvk/img/pin.png" title="{_messenger_chat_pinned}" />
         <span class="crp-entry--muted-icon" title="{_messenger_chat_muted}"></span>
     </div>
-    <div class="crp-entry--menu" onmousedown="event.stopPropagation();">
+    <div n:if="!($hideMenu ?? false)" class="crp-entry--menu" onmousedown="event.stopPropagation();">
         <div class="crp-entry--menu-dots">&#8943;</div>
     </div>
 </div>

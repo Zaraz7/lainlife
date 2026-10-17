@@ -1,0 +1,62 @@
+SELECT
+  dt.id,
+  dt.class,
+  MAX(dt.time) AS time
+FROM
+(
+  (
+    SELECT
+      id AS mid,
+      recipient_id AS id,
+      recipient_type AS class,
+      created AS time
+    FROM messages
+    WHERE
+      sender_id = ?
+    AND
+      sender_type = ?
+    AND
+      deleted = 0
+  ) UNION ALL (
+    SELECT
+      id AS mid,
+      sender_id AS id,
+      sender_type AS class,
+      created AS time
+    FROM messages
+    WHERE
+      recipient_id = ?
+    AND
+      recipient_type = ?
+    AND
+      deleted = 0
+  )
+) dt
+LEFT JOIN messenger_dialogs d
+  ON d.owner_id = ?
+  AND d.owner_type = ?
+  AND d.peer_id = dt.id
+  AND d.peer_type = dt.class
+LEFT JOIN profiles p
+  ON dt.class = ?
+  AND p.id = dt.id
+LEFT JOIN `groups` g
+  ON dt.class = ?
+  AND g.id = dt.id
+WHERE
+  dt.mid > COALESCE(d.cleared_till, 0)
+AND
+  dt.mid NOT IN (SELECT message_id FROM messages_hidden WHERE owner_id = ?)
+AND
+  IF(
+    dt.class = ? AND dt.id = ?,
+    ?,
+    CONCAT_WS(' ', p.first_name, p.last_name) LIKE ?
+      OR CONCAT_WS(' ', p.last_name, p.first_name) LIKE ?
+      OR g.name LIKE ?
+  )
+GROUP BY
+  dt.id,
+  dt.class
+ORDER BY
+  time DESC

@@ -10,7 +10,7 @@ use openvk\Web\Events\DeleteMessageEvent;
 use openvk\Web\Events\EditMessageEvent;
 use openvk\Web\Models\Repositories\{Users, Clubs, Messages, MessengerDialogs};
 use openvk\Web\Models\Entities\Messages\Sticker;
-use openvk\Web\Models\Entities\{Message, Correspondence, User, Photo, Video, Audio, Document};
+use openvk\Web\Models\Entities\{Message, Correspondence, User, Club, Photo, Video, Audio, Document};
 
 final class MessengerPresenter extends OpenVKPresenter
 {
@@ -655,43 +655,289 @@ final class MessengerPresenter extends OpenVKPresenter
 
         $items = [];
         foreach (array_slice($found, 0, $perPage) as $item) {
-            if ($item instanceof Photo) {
-                $items[] = [
-                    "id"    => $item->getPrettyId(),
-                    "thumb" => $item->getURLBySizeId("normal"),
-                    "url"   => $item->getURL(),
-                ];
-            } elseif ($item instanceof Video) {
-                $items[] = [
-                    "id"     => $item->getOwner()->getId() . "_" . $item->getVirtualId(),
-                    "name"   => $item->getName(),
-                    "thumb"  => $item->getThumbnailURL(),
-                    "length" => $item->getFormattedLength(),
-                ];
-            } elseif ($item instanceof Audio) {
-                $items[] = [
-                    "html" => $this->getTemplatingEngine()->renderToString(dirname(__FILE__) . "/templates/Audio/player.latte", [
-                        "audio"       => $item,
-                        "thisUser"    => $this->user->identity,
-                        "hideButtons" => false,
-                        "club"        => null,
-                    ]),
-                ];
-            } elseif ($item instanceof Document) {
-                $items[] = [
-                    "link"    => "/doc" . $item->getPrettyId(),
-                    "url"     => preg_replace("~^https?:~", "", $item->getURL()),
-                    "name"    => $item->getName(),
-                    "ext"     => $item->getFileExtension(),
-                    "size"    => readable_filesize($item->getFilesize()),
-                    "preview" => $item->hasPreview() ? $item->getPreview()->getURLBySizeId("medium") : null,
-                ];
+            $simple = $this->simplifyAttachment($item);
+            if ($simple) {
+                $items[] = $simple;
             }
         }
 
         $this->returnJson([
             "items" => $items,
             "more"  => sizeof($found) > $perPage,
+        ]);
+    }
+
+    // вложение для списков в меню вложений и в поиске по всем чатам
+    private function simplifyAttachment(object $item): ?array
+    {
+        if ($item instanceof Photo) {
+            return [
+                "id"    => $item->getPrettyId(),
+                "thumb" => $item->getURLBySizeId("normal"),
+                "url"   => $item->getURL(),
+            ];
+        } elseif ($item instanceof Video) {
+            return [
+                "id"     => $item->getOwner()->getId() . "_" . $item->getVirtualId(),
+                "name"   => $item->getName(),
+                "thumb"  => $item->getThumbnailURL(),
+                "length" => $item->getFormattedLength(),
+            ];
+        } elseif ($item instanceof Audio) {
+            return [
+                "html" => $this->getTemplatingEngine()->renderToString(dirname(__FILE__) . "/templates/Audio/player.latte", [
+                    "audio"       => $item,
+                    "thisUser"    => $this->user->identity,
+                    "hideButtons" => false,
+                    "club"        => null,
+                ]),
+            ];
+        } elseif ($item instanceof Document) {
+            return [
+                "link"    => "/doc" . $item->getPrettyId(),
+                "url"     => preg_replace("~^https?:~", "", $item->getURL()),
+                "name"    => $item->getName(),
+                "ext"     => $item->getFileExtension(),
+                "size"    => readable_filesize($item->getFilesize()),
+                "preview" => $item->hasPreview() ? $item->getPreview()->getURLBySizeId("medium") : null,
+            ];
+        }
+
+        return null;
+    }
+
+    // id собеседника как в /im?sel= (у клубов отрицательный)
+    private function getSel(object $peer): int
+    {
+        return $peer instanceof Club ? -$peer->getId() : $peer->getId();
+    }
+
+    private function isSelf(object $peer): bool
+    {
+        return $peer instanceof User && $peer->getId() === $this->user->id;
+    }
+
+    // собеседник в диалоге, которому принадлежит сообщение
+    private function getMessagePeer(Message $message): object
+    {
+        $sender = $message->getSender();
+
+        return $this->isSelf($sender) ? $message->getRecipient() : $sender;
+    }
+
+    // текст найденного сообщения без разметки, с подсвеченным запросом; длинный обрезается вокруг первого совпадения
+    private function searchPreview(Message $message, string $query): string
+    {
+        $text = html_entity_decode(strip_tags($message->getText()), ENT_QUOTES | ENT_HTML5, "UTF-8");
+        $text = trim(preg_replace("~\s+~u", " ", $text) ?? $text);
+
+        if (mb_strlen($text) > 200) {
+            $pos   = $query === "" ? false : mb_stripos($text, $query);
+            $start = $pos === false ? 0 : max(0, $pos - 60);
+            $text  = ($start > 0 ? "…" : "") . mb_substr($text, $start, 200) . ($start + 200 < mb_strlen($text) ? "…" : "");
+        }
+
+        $parts = $query === "" ? false : preg_split("~(" . preg_quote($query, "~") . ")~iu", $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+        if ($parts === false) {
+            return htmlspecialchars($text);
+        }
+
+        $html = "";
+        foreach ($parts as $i => $part) {
+            $html .= $i % 2 ? "<mark class=\"im-search-hl\">" . htmlspecialchars($part) . "</mark>" : htmlspecialchars($part);
+        }
+
+        return $html;
+    }
+
+    // вкладки вложений в поиске по всем чатам, в порядке показа
+    private const SEARCH_MEDIA = ["photo", "video", "gif", "audio", "doc"];
+
+    public function renderSearch(): void
+    {
+        $this->assertUserLoggedIn();
+
+        $me        = $this->user->identity;
+        $query     = trim((string) $this->queryParam("q"));
+        $page      = max(1, (int) ($this->queryParam("p") ?? 1));
+        $requested = (string) $this->queryParam("section");
+        $matchSelf = $query !== "" && mb_stripos(tr("saved_messages"), $query) !== false;
+
+        // чаты и сообщения ищутся по запросу, а вложения показываются все; пустые вкладки вложений не показываем
+        $counts = [];
+        if ($query !== "") {
+            $counts["chats"]    = $this->messages->searchCorrespondenciesCount($me, $query, $matchSelf);
+            $counts["messages"] = $this->messages->searchMessagesCount($me, $query);
+        }
+
+        $attachments = $this->messages->getAttachmentsCount($me);
+        foreach (self::SEARCH_MEDIA as $kind) {
+            if ($attachments[$kind] > 0 || $kind === $requested) {
+                $counts[$kind] = $attachments[$kind];
+            }
+        }
+
+        $section = $requested;
+        if (!isset($counts[$section])) {
+            $section = ($query !== "" && $counts["chats"] === 0) ? "messages" : array_key_first($counts);
+        }
+
+        $perPage = match ($section) {
+            "chats"        => OPENVK_DEFAULT_PER_PAGE,
+            "photo", "gif" => 30,
+            default        => 20,
+        };
+        $offset  = ($page - 1) * $perPage;
+
+        $results = [];
+        if ($section === "chats") {
+            $results = $this->messages->searchCorrespondencies($me, $query, $matchSelf, $page, $perPage);
+        } elseif ($section === "messages") {
+            foreach ($this->messages->searchMessages($me, $query, $offset, $perPage) as $message) {
+                $peer      = $this->getMessagePeer($message);
+                $results[] = (object) [
+                    "message" => $message,
+                    "peer"    => $peer,
+                    "url"     => "/im?sel=" . $this->getSel($peer) . "&msg=" . $message->getId(),
+                    "saved"   => $this->isSelf($peer),
+                    "own"     => !$this->isSelf($peer) && $this->isSelf($message->getSender()),
+                    "text"    => $this->searchPreview($message, $query),
+                ];
+            }
+        } elseif (!is_null($section)) {
+            foreach ($this->messages->getAttachments($me, $section, $offset, $perPage) as [$item, $message]) {
+                $peer = $this->getMessagePeer($message);
+                $att  = $this->simplifyAttachment($item);
+                if (!$att) {
+                    continue;
+                }
+
+                $results[] = (object) [
+                    "att"  => $att,
+                    "url"  => "/im?sel=" . $this->getSel($peer) . "&msg=" . $message->getId(),
+                    "chat" => $this->isSelf($peer) ? tr("saved_messages") : $peer->getCanonicalName(),
+                ];
+            }
+        }
+
+        $this->template->query         = $query;
+        $this->template->section       = $section;
+        $this->template->counts        = $counts;
+        $this->template->results       = $results;
+        $this->template->paginatorConf = (object) [
+            "count"   => is_null($section) ? 0 : $counts[$section],
+            "page"    => $page,
+            "amount"  => sizeof($results),
+            "perPage" => $perPage,
+            "tidy"    => false,
+            "atTop"   => false,
+        ];
+    }
+
+    public function renderApiSearchMessages(int $sel): void
+    {
+        $this->assertUserLoggedIn();
+
+        $peer = $this->getCorrespondent($sel);
+        if (!$peer) {
+            $this->notFound();
+        }
+
+        $query   = trim((string) $this->queryParam("q"));
+        $perPage = 20;
+        $offset  = max(0, (int) $this->queryParam("offset"));
+        $cor     = new Correspondence($this->user->identity, $peer);
+        $found   = $query === "" ? [] : $cor->searchMessages($query, $offset, $perPage + 1);
+
+        $items = [];
+        foreach (array_slice($found, 0, $perPage) as $message) {
+            $sender  = $message->getSender();
+            $items[] = [
+                "uuid"   => $message->getId(),
+                "sender" => [
+                    "name"   => $sender->getCanonicalName(),
+                    "avatar" => $sender->getAvatarUrl("miniscule"),
+                ],
+                "ts"     => $message->getSendTime()->timestamp(),
+                "text"   => $this->searchPreview($message, $query),
+            ];
+        }
+
+        $this->returnJson([
+            "items" => $items,
+            "count" => ($query === "" || $offset > 0) ? null : $cor->searchMessagesCount($query),
+            "more"  => sizeof($found) > $perPage,
+        ]);
+    }
+
+    // кусок истории для перехода к сообщению (msg) или дате (date) и догрузка более новых после такого перехода (after)
+    public function renderApiHistory(int $sel): void
+    {
+        $this->assertUserLoggedIn();
+
+        $peer = $this->getCorrespondent($sel);
+        if (!$peer) {
+            $this->notFound();
+        }
+
+        $perPage  = OPENVK_DEFAULT_PER_PAGE * 2;
+        $cor      = new Correspondence($this->user->identity, $peer);
+        $target   = null;
+        $olderEnd = null;
+
+        if (!is_null($this->queryParam("after"))) {
+            $messages = $cor->getMessages(Correspondence::CAP_BEHAVIOUR_START_MESSAGE_ID, (int) $this->queryParam("after"), $perPage + 1, 0, true);
+            $newerEnd = sizeof($messages) <= $perPage;
+            $messages = array_slice($messages, 0, $perPage);
+        } else {
+            if (!is_null($this->queryParam("date"))) {
+                $target = $cor->getNearestMessageId((int) $this->queryParam("date"));
+            } else {
+                $msg    = $this->messages->get((int) $this->queryParam("msg"));
+                $target = ($msg && !$msg->isDeleted() && $cor->hasMessage($msg)) ? $msg->getId() : null;
+            }
+
+            [$messages, $hasOlder, $hasNewer] = $target ? $cor->getMessagesAround($target, $perPage, $perPage) : [[], false, false];
+            $olderEnd = !$hasOlder;
+            $newerEnd = !$hasNewer;
+        }
+
+        $result = [];
+        foreach ($messages as $message) {
+            $simple = $message->simplify();
+            $this->enrichAttachmentsWithHTML($message, $simple);
+            $result[] = $simple;
+        }
+
+        $this->returnJson([
+            "target"    => $target,
+            "messages"  => $result,
+            "older_end" => $olderEnd,
+            "newer_end" => $newerEnd,
+        ]);
+    }
+
+    // дни с сообщениями для календаря; границы месяца и часовой пояс (в минутах) присылает браузер
+    public function renderApiCalendar(int $sel): void
+    {
+        $this->assertUserLoggedIn();
+
+        $peer = $this->getCorrespondent($sel);
+        if (!$peer) {
+            $this->notFound();
+        }
+
+        $from = (int) $this->queryParam("from");
+        $to   = min((int) $this->queryParam("to"), $from + 32 * 86400);
+        $tz   = max(-14 * 60, min(14 * 60, (int) $this->queryParam("tz")));
+
+        $cor = new Correspondence($this->user->identity, $peer);
+        [$first, $last] = $cor->getTimeBounds();
+
+        $this->returnJson([
+            "days"  => $to > $from ? $cor->getMessageDays($from, $to, $tz * 60) : [],
+            "first" => $first,
+            "last"  => $last,
         ]);
     }
 

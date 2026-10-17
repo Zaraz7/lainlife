@@ -1,0 +1,11 @@
+{* поиск по всем чатам, над списком диалогов и на странице результатов *}
+<form class="im-search-bar" action="/im/search" method="get">
+    <input type="search" name="q" value="{$query ?? ''}" placeholder="{_messenger_search_placeholder}" autocomplete="off" />
+    <input type="submit" class="button" value="{_search_button}" />
+    <div n:if="$media ?? true" class="im-search-bar--media">
+        <a n:foreach="['photo' => 'application-x-egon', 'video' => 'application-vnd.rn-realmedia', 'gif' => 'application-xsd', 'audio' => 'audio-ac3', 'doc' => 'application-octet-stream'] as $kind => $icon"
+           href="/im/search?section={$kind}" title="{tr('messenger_search_' . $kind)}">
+            <img src="/assets/packages/static/openvk/img/oxygen-icons/16x16/mimetypes/{$icon}.png" alt="{tr('messenger_search_' . $kind)}" />
+        </a>
+    </div>
+</form>

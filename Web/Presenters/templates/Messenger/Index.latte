@@ -8,6 +8,8 @@
 {/block}
 
 {block content}
+    {include "searchbar.latte"}
+
     <div class="tabs">
         <div n:attr="id => !$isArchive ? 'activetabs'" class="tab">
             <a n:attr="id => !$isArchive ? 'act_tab_a'" href="/im">{_all_messages}</a>

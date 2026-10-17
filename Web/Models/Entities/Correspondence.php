@@ -11,7 +11,7 @@ use openvk\Web\Events\{NewMessageEvent, TypingEvent};
 use openvk\Web\Models\Entities\Message;
 use openvk\Web\Models\Entities\User;
 use openvk\Web\Models\RowModel;
-use openvk\Web\Models\Repositories\{Users, MessengerDialogs};
+use openvk\Web\Models\Repositories\{Users, Messages, MessengerDialogs};
 use openvk\Web\Util\NotificationBroker;
 use Nette\Database\Table\ActiveRow;
 
@@ -254,17 +254,135 @@ class Correspondence
         return $msgs;
     }
 
+    // условие на сообщения переписки, видимые первому корреспонденту; первым элементом идёт сам SQL
+    private function getVisibleCondition(): array
+    {
+        $params = $this->getPairCondition();
+        $cond   = array_shift($params);
+
+        return ["`deleted` = 0 AND `id` > " . $this->getClearedTill() . $this->getHiddenCondition() . " AND $cond", ...$params];
+    }
+
+    private function toMessages(iterable $rows): array
+    {
+        $messages = [];
+        foreach ($rows as $row) {
+            $messages[] = new Message(new ActiveRow((array) $row, $this->messages));
+        }
+
+        return $messages;
+    }
+
+    /**
+     * Поиск по тексту сообщений, новые первыми.
+     */
+    public function searchMessages(string $query, int $offset = 0, int $limit = 20): array
+    {
+        $params = $this->getVisibleCondition();
+        $cond   = array_shift($params);
+        $rows   = DatabaseConnection::i()->getConnection()->query(
+            "SELECT * FROM `messages` WHERE $cond AND `content` LIKE ? ORDER BY `id` DESC LIMIT ? OFFSET ?",
+            ...$params,
+            ...[Messages::likePattern($query), $limit, $offset]
+        );
+
+        return $this->toMessages($rows);
+    }
+
+    public function searchMessagesCount(string $query): int
+    {
+        $params = $this->getVisibleCondition();
+        $cond   = array_shift($params);
+
+        return (int) DatabaseConnection::i()->getConnection()->query(
+            "SELECT COUNT(*) AS cnt FROM `messages` WHERE $cond AND `content` LIKE ?",
+            ...$params,
+            ...[Messages::likePattern($query)]
+        )->fetch()->cnt;
+    }
+
+    /**
+     * Кусок истории вокруг сообщения: до $before более ранних, само сообщение и до $after более поздних.
+     *
+     * @returns array [Message[] по возрастанию, есть ли ещё более ранние, есть ли ещё более поздние]
+     */
+    public function getMessagesAround(int $messageId, int $before, int $after): array
+    {
+        $older = $this->getMessages(self::CAP_BEHAVIOUR_END_MESSAGE_ID, $messageId, $before + 1, 0);
+        $newer = $this->getMessages(self::CAP_BEHAVIOUR_START_MESSAGE_ID, $messageId - 1, $after + 2, 0, true);
+
+        return [
+            array_merge(array_reverse(array_slice($older, 0, $before)), array_slice($newer, 0, $after + 1)),
+            sizeof($older) > $before,
+            sizeof($newer) > $after + 1,
+        ];
+    }
+
+    /**
+     * Первое сообщение начиная с $timestamp, а если позже ничего нет — самое последнее.
+     */
+    public function getNearestMessageId(int $timestamp): ?int
+    {
+        $params     = $this->getVisibleCondition();
+        $cond       = array_shift($params);
+        $connection = DatabaseConnection::i()->getConnection();
+
+        $row = $connection->query("SELECT `id` FROM `messages` WHERE $cond AND `created` >= ? ORDER BY `created` ASC, `id` ASC LIMIT 1", ...$params, ...[$timestamp])->fetch()
+            ?? $connection->query("SELECT `id` FROM `messages` WHERE $cond ORDER BY `created` DESC, `id` DESC LIMIT 1", ...$params)->fetch();
+
+        return $row ? (int) $row->id : null;
+    }
+
+    /**
+     * Дни, в которые были сообщения, — номера суток от эпохи со сдвигом часового пояса $tzOffset (в секундах).
+     */
+    public function getMessageDays(int $from, int $to, int $tzOffset): array
+    {
+        $params = $this->getVisibleCondition();
+        $cond   = array_shift($params);
+        $rows   = DatabaseConnection::i()->getConnection()->query(
+            "SELECT DISTINCT FLOOR((`created` + ?) / 86400) AS `day` FROM `messages` WHERE $cond AND `created` >= ? AND `created` < ?",
+            $tzOffset,
+            ...$params,
+            ...[$from, $to]
+        );
+
+        $days = [];
+        foreach ($rows as $row) {
+            $days[] = (int) $row->day;
+        }
+
+        return $days;
+    }
+
+    /**
+     * Время первого и последнего сообщения переписки.
+     *
+     * @returns array [int|null, int|null]
+     */
+    public function getTimeBounds(): array
+    {
+        $params = $this->getVisibleCondition();
+        $cond   = array_shift($params);
+        $row    = DatabaseConnection::i()->getConnection()->query("SELECT MIN(`created`) AS `first`, MAX(`created`) AS `last` FROM `messages` WHERE $cond", ...$params)->fetch();
+
+        return [is_null($row->first) ? null : (int) $row->first, is_null($row->last) ? null : (int) $row->last];
+    }
+
     public const ATTACHMENT_KINDS = ["photo", "video", "doc", "audio", "gif"];
 
-    // общая часть выборки вложений из видимых владельцу сообщений диалога
-    private function attachmentsQuery(string $select, string $tail = ""): array
-    {
-        $kind = "CASE a.attachable_type
+    // тип вложения из attachments (a) и documents (d), общий для одного диалога и поиска по всем
+    public const ATTACHMENT_KIND_SQL = "CASE a.attachable_type
             WHEN 'openvk\\\\Web\\\\Models\\\\Entities\\\\Photo' THEN 'photo'
             WHEN 'openvk\\\\Web\\\\Models\\\\Entities\\\\Video' THEN 'video'
             WHEN 'openvk\\\\Web\\\\Models\\\\Entities\\\\Audio' THEN 'audio'
             WHEN 'openvk\\\\Web\\\\Models\\\\Entities\\\\Document' THEN IF(d.type = 3, 'gif', 'doc')
         END";
+
+    // общая часть выборки вложений из видимых владельцу сообщений диалога
+    private function attachmentsQuery(string $select, string $tail = ""): array
+    {
+        $kind = self::ATTACHMENT_KIND_SQL;
 
         $query = "SELECT $select FROM (
             SELECT a.attachable_type, a.attachable_id, m.id AS message_id, $kind AS kind

@@ -1726,13 +1726,19 @@ table.User {
     line-height: 12px;
 }
 
-.im-peer-info-btn {
+.im-peer-info-btn,
+.im-calendar-btn {
     display: flex;
     cursor: pointer;
     opacity: .85;
 }
 
-.im-peer-info-btn:hover {
+.im-calendar-btn {
+    margin-right: 8px;
+}
+
+.im-peer-info-btn:hover,
+.im-calendar-btn:hover {
     opacity: 1;
 }
 
@@ -1923,6 +1929,394 @@ span.ok-smile.ok-smile {
     padding: 40px 0;
     text-align: center;
     color: #888;
+}
+
+/* поиск по сообщениям в меню вложений */
+.im-peer-search--bar {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 10px;
+    border-bottom: 1px solid #e7e8ec;
+    background: #fff;
+}
+
+.im-peer-search--bar input[type="search"],
+.im-search-bar input[type="search"] {
+    padding: 5px 6px 5px 25px;
+    background-image: url("/assets/packages/static/openvk/img/oxygen-icons/16x16/actions/edit-find.png");
+    background-position: 5px center;
+    background-repeat: no-repeat;
+}
+
+.im-peer-search--summary {
+    padding: 8px 12px 2px;
+    color: #888;
+    font-size: 11px;
+}
+
+.im-peer-search--results {
+    padding: 4px 6px 6px;
+}
+
+/* найденные сообщения: в меню вложений и на странице поиска по всем чатам */
+.im-search-msg {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 2px;
+    color: inherit;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.im-search-msg:hover {
+    background: rgba(81, 129, 184, .08);
+    text-decoration: none;
+}
+
+.im-search-msg--ava {
+    flex: none;
+    width: 37px;
+    height: 37px;
+    object-fit: cover;
+    border-radius: 3px;
+}
+
+.im-search-msg--body {
+    flex: 1;
+    min-width: 0;
+}
+
+.im-search-msg--head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 3px;
+}
+
+.im-search-msg--head b {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: #2b587a;
+}
+
+.im-search-msg--date {
+    flex: none;
+    color: #888;
+    font-size: 11px;
+}
+
+.im-search-msg--text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.im-search-msg--author {
+    width: 16px;
+    height: 16px;
+    margin-right: 3px;
+    object-fit: cover;
+    border-radius: 2px;
+    vertical-align: -4px;
+}
+
+.im-search-hl {
+    padding: 0 1px;
+    border-radius: 2px;
+    background: #ffe98a;
+    color: inherit;
+}
+
+/* поиск по всем чатам: строка над списком диалогов и страница результатов */
+.im-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.im-search-bar input[type="search"] {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+}
+
+.im-search-bar--media {
+    display: flex;
+    gap: 2px;
+    margin-left: 4px;
+}
+
+.im-search-bar--media a {
+    display: flex;
+    padding: 4px;
+    border-radius: 2px;
+    opacity: .75;
+}
+
+.im-search-bar--media a:hover {
+    background: rgba(81, 129, 184, .1);
+    opacity: 1;
+}
+
+.im-search-bar + .tabs {
+    margin-top: 10px;
+}
+
+.im-search-tabs--count {
+    margin-left: 4px;
+    color: inherit;
+    font-weight: normal;
+    opacity: .65;
+}
+
+.im-search-results {
+    width: 628px;
+    margin: 10px -6px -10px -11px;
+    border-top: 1px solid #d6d6d6;
+    box-sizing: border-box;
+}
+
+.im-search-results .im-search-msg {
+    border-bottom: 1px solid #e7e8ec;
+    border-radius: 0;
+}
+
+.im-search-empty {
+    padding: 50px 0;
+    text-align: center;
+    color: #888;
+}
+
+.im-search-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-auto-rows: 118px;
+    gap: 3px;
+    padding: 6px;
+}
+
+.im-search-att {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.im-search-att .im-peer-att--photo {
+    display: block;
+    height: 100%;
+}
+
+.im-search-att .im-search-att--goto {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 3px 6px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    background: rgba(0, 0, 0, .55);
+    color: #fff;
+    font-size: 11px;
+    opacity: 0;
+    transition: opacity .15s;
+}
+
+.im-search-att:hover .im-search-att--goto {
+    opacity: 1;
+}
+
+.im-search-rows {
+    padding: 6px;
+}
+
+.im-search-att-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.im-search-att-row > :first-child {
+    flex: 1;
+    min-width: 0;
+}
+
+.im-search-att-row .im-search-att--goto {
+    flex: none;
+    width: 140px;
+    padding-right: 6px;
+    text-align: right;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: #888;
+    font-size: 11px;
+}
+
+/* кнопка «к последним сообщениям», липнет к низу ленты */
+.im-jump-bottom {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    align-self: flex-end;
+    display: none;
+    height: 0;
+    margin-right: -46px;
+}
+
+.im-jump-bottom.shown {
+    display: block;
+}
+
+.im-jump-bottom::before {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 4px;
+    width: 32px;
+    height: 32px;
+    box-sizing: border-box;
+    border: 1px solid #d6d6d6;
+    border-radius: 50%;
+    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23708aa6' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") center no-repeat;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .1);
+    cursor: pointer;
+}
+
+.im-jump-bottom:hover::before {
+    border-color: #b8c4d2;
+}
+
+/* календарь выбора дня (al_calendar.js) */
+.ovk-diag-cont.ovk-calendar-dialog {
+    width: 320px;
+}
+
+.ovk-calendar-widget {
+    max-width: 270px;
+    margin: 0 auto;
+    font-size: 12px;
+    user-select: none;
+}
+
+.ovk-cal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.ovk-cal-nav-btn {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid #d6d6d6;
+    border-radius: 2px;
+    background: #fff;
+    color: #555;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.ovk-cal-nav-btn:hover:not(:disabled) {
+    border-color: #b8b8b8;
+    background: #f0f0f0;
+    color: #222;
+}
+
+.ovk-cal-nav-btn:disabled {
+    opacity: .4;
+    cursor: default;
+}
+
+.ovk-cal-selects {
+    display: flex;
+    flex: 1;
+    gap: 5px;
+}
+
+.ovk-cal-selects select {
+    flex: 1;
+    min-width: 0;
+}
+
+.ovk-cal-selects select[name="month"] {
+    flex: 1.6;
+}
+
+.ovk-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    text-align: center;
+    transition: opacity .15s;
+}
+
+.ovk-cal-grid.loading {
+    opacity: .5;
+}
+
+.ovk-cal-weekday {
+    margin-bottom: 4px;
+    padding: 4px 0 6px;
+    border-bottom: 1px solid #e7e8ec;
+    color: #888;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.ovk-cal-day {
+    padding: 5px 0;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.ovk-cal-day:hover {
+    background: #e8ebef;
+}
+
+.ovk-cal-day-active {
+    background: rgba(81, 129, 184, .1);
+    color: #2b587a;
+    font-weight: bold;
+}
+
+.ovk-cal-day-other,
+.ovk-cal-day-empty {
+    color: #c0c0c0;
+    cursor: default;
+}
+
+.ovk-cal-day-other:hover,
+.ovk-cal-day-empty:hover {
+    background: transparent;
+}
+
+.ovk-cal-day-today {
+    border-color: #b8b8b8;
+}
+
+.ovk-cal-day-selected,
+.ovk-cal-day-selected:hover {
+    background: #5e81a8;
+    color: #fff;
+    font-weight: bold;
 }
 
 /* выбор диалога для пересылки */

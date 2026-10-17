@@ -18,6 +18,9 @@
                 <span>{$correspondent->isFemale() ? tr("was_online_f") : tr("was_online_m")} {$correspondent->getOnline()}</span>
             {/if}
         </div>
+        <a class="im-calendar-btn" title="{_messenger_go_to_date}">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2"/><path d="M16 2.5v4M8 2.5v4M3 10h18M7.5 14h2M11 14h2M14.5 14h2M7.5 17.5h2M11 17.5h2"/></svg>
+        </a>
         <a class="im-peer-info-btn" title="{_messenger_chat_info}">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
         </a>
@@ -105,6 +108,7 @@
             <div class="messenger-app--typing-status" style="display:none;opacity:0;">
                 {tr('message_user_typing', $correspondent->getFirstName())}
             </div>
+            <a class="im-jump-bottom" title="{_messenger_jump_to_recent}"></a>
         </div>
         <div id="messenger-attachment-preview" style="margin: 8px 12px; display: none;">
             <div class="post-horizontal" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
@@ -302,9 +306,12 @@
     </template>
 
     {script "js/node_modules/knockout/build/output/knockout-latest.js"}
+    {script "js/al_calendar.js"}
     <script>
         // страница может прийти через ajax-переход, поэтому всё внутри своей области видимости
         (() => {
+            const PEER_SEL = {$correspondent instanceof \openvk\Web\Models\Entities\Club ? -$correspondent->getId() : $correspondent->getId()};
+
             window.MSG_STR = {
                 pin:     {tr("messenger_pin_message")},
                 unpin:   {tr("messenger_unpin_message")},
@@ -405,6 +412,9 @@
                     if(e.target.scrollTop < 21)
                         model.loadHistory();
 
+                    if(e.target.scrollHeight - e.target.scrollTop - e.target.clientHeight < 21)
+                        window.Msg.loadNewer();
+
                     window.Msg.scheduleFloatingDate();
                 };
                 this.onTextareaKeyPress = (model, e) => {
@@ -437,8 +447,20 @@
                     this.historyEnd = false;
                     this.lastSync = Math.floor(Date.now() / 1000);
 
+                    // после перехода к сообщению или дате лента показывает кусок истории без последних сообщений
+                    this.detached     = false;
+                    this.newerCursor  = 0; // самое новое загруженное id, пока лента оторвана от конца
+                    this.loadingNewer = false;
+                    this.feed         = 0; // меняется при замене ленты, чтобы не дописать в неё устаревший ответ
+                    this.jumpBtn      = document.querySelector(".im-jump-bottom");
+
                     this.typingTimer = null;
                     this.pollTimer   = null;
+
+                    this.jumpBtn?.addEventListener("click", e => {
+                        e.preventDefault();
+                        this.detached ? this.showLatest() : this.appEl.scrollTo({ top: this.appEl.scrollHeight, behavior: "smooth" });
+                    });
 
                     this._loadHistory();
                     this._setupPolling();
@@ -492,6 +514,8 @@
                                     (data.messages || []).forEach(message => {
                                         if(this.newestId >= message.uuid) return;
                                         this.newestId = message.uuid;
+                                        // лента показывает старую историю — новое подтянется при прокрутке вниз
+                                        if(this.detached) return;
                                         // своё отправленное/пересланное сообщение уже есть в ленте
                                         if(window.messages().some(m => m.uuid === message.uuid)) return;
                                         this.addMessage(message);
@@ -555,7 +579,15 @@
                     this._floatingDateFrame = requestAnimationFrame(() => {
                         this._floatingDateFrame = null;
                         this.updateFloatingDate();
+                        this.updateJumpButton();
                     });
+                }
+
+                firstVisibleMessage() {
+                    const top   = this.appEl.getBoundingClientRect().top;
+                    const first = [...this.appEl.querySelectorAll(".messenger-app--messages---message")].find(el => el.getBoundingClientRect().bottom > top);
+
+                    return first ? ko.dataFor(first) : null;
                 }
 
                 // плашка с датой первого видимого сообщения; прячется, когда сверху и так виден разделитель дня
@@ -563,8 +595,7 @@
                     const wrap = this.appEl.querySelector(".im_floating_date_wrap");
                     const top  = this.appEl.getBoundingClientRect().top;
 
-                    const first = [...this.appEl.querySelectorAll(".messenger-app--messages---message")].find(el => el.getBoundingClientRect().bottom > top);
-                    const msg   = first ? ko.dataFor(first) : null;
+                    const msg  = this.firstVisibleMessage();
                     const dividerAtTop = [...this.appEl.querySelectorAll(".messenger-app--messages-day-time")].some(el => {
                         const rect = el.getBoundingClientRect();
                         return rect.top >= top - 12 && rect.bottom <= top + 50;
@@ -588,6 +619,8 @@
                 }
             
                 addMessage(message, scroll = true) {
+                    // новое сообщение встаёт в конец переписки, поэтому сначала возвращаемся к последним
+                    if(this.detached) this.showLatest();
                     this.appendMessages([message]);
                 
                     if(scroll) {
@@ -706,11 +739,11 @@
                     if(JSON.stringify(cur) !== JSON.stringify(msg)) window.pinnedMsg(msg);
                 }
 
-                scrollToMessage(uuid) {
+                scrollToMessage(uuid, behavior = "smooth") {
                     const el = this.appEl.querySelector(`[data-uuid="${ uuid }"]`);
                     if(!el) return;
 
-                    el.scrollIntoView({ block: "center", behavior: "smooth" });
+                    el.scrollIntoView({ block: "center", behavior });
                     el.classList.add("highlighted");
                     setTimeout(() => el.classList.remove("highlighted"), 1500);
                 }
@@ -882,13 +915,129 @@
                     this.goToMessage(reply.uuid);
                 }
 
-                // догружаем историю, пока исходное сообщение не окажется в ленте
+                // сообщения нет в ленте — показываем кусок истории вокруг него
                 goToMessage(uuid) {
-                    for(let i = 0; i < 30 && !this.historyEnd && !window.messages().some(m => m.uuid === uuid); i++) {
-                        this._loadHistory();
+                    if(window.messages().some(m => m.uuid === uuid)) return this.scrollToMessage(uuid);
+
+                    return this.jump({ msg: uuid });
+                }
+
+                hydrateMedia() {
+                    this.appEl.querySelectorAll(".bsdn").forEach(el => {
+                        if(!el.querySelector(".bdsn-hydrated")) {
+                            bsdnInitElement(el);
+                        }
+                    });
+                }
+
+                // переход к сообщению ({ msg }) или первому сообщению дня ({ date }); лента отрывается
+                // от последних сообщений, более новые догружаются при прокрутке вниз
+                async jump(params) {
+                    const feed = ++this.feed;
+
+                    let data;
+                    try {
+                        const res = await fetch(`/im/api/messages${ PEER_SEL }/history.json?` + new URLSearchParams(params));
+                        if(!res.ok) throw new Error(res.status);
+                        data = await res.json();
+                    } catch(e) {
+                        console.error("History jump failed", e);
+                        return fastError(tr("messages_error_1"));
                     }
 
-                    this.scrollToMessage(uuid);
+                    if(feed !== this.feed || !data.target || data.messages.length === 0) return;
+                    if(window.messages().some(m => m.uuid === data.target)) return this.scrollToMessage(data.target);
+
+                    window.selectedMsgs.removeAll();
+                    window.messages(data.messages);
+
+                    this.offset      = data.messages[0].uuid;
+                    this.historyEnd  = data.older_end;
+                    this.newerCursor = data.messages[data.messages.length - 1].uuid;
+                    this.detached    = !data.newer_end;
+                    // поллинг продолжит с последнего показанного: пропущенное, пока лента была оторвана, не потеряется
+                    if(!this.detached) this.newestId = this.newerCursor;
+
+                    this.hydrateMedia();
+
+                    // само сообщение могло быть скрыто — тогда показываем следующее за ним
+                    const shown = data.messages.find(m => m.uuid >= data.target) ?? data.messages[data.messages.length - 1];
+                    this.scrollToMessage(shown.uuid, "auto");
+                    this.updateJumpButton();
+                }
+
+                async loadNewer() {
+                    if(!this.detached || this.loadingNewer) return;
+
+                    const feed = this.feed;
+                    this.loadingNewer = true;
+
+                    try {
+                        const res = await fetch(`/im/api/messages${ PEER_SEL }/history.json?after=${ this.newerCursor }`);
+                        if(!res.ok) throw new Error(res.status);
+                        const data = await res.json();
+
+                        if(feed === this.feed && this.detached) {
+                            const fresh = data.messages.filter(m => !window.messages().some(x => x.uuid === m.uuid));
+                            if(fresh.length) window.messages.push(...fresh);
+                            if(data.messages.length) this.newerCursor = data.messages[data.messages.length - 1].uuid;
+
+                            if(data.newer_end) {
+                                this.detached = false;
+                                this.newestId = this.newerCursor;
+                            }
+
+                            this.hydrateMedia();
+                        }
+                    } catch(e) {
+                        console.error("Newer messages loading failed", e);
+                    }
+
+                    this.loadingNewer = false;
+                    this.updateJumpButton();
+                }
+
+                // вернуть ленту к последним сообщениям
+                showLatest() {
+                    if(this.detached) {
+                        this.feed++;
+                        window.selectedMsgs.removeAll();
+                        window.messages.removeAll();
+
+                        const newest    = this.newestId;
+                        this.offset     = 0;
+                        this.historyEnd = false;
+                        this.detached   = false;
+                        this.newestId   = 0;
+                        this._loadHistory();
+                        this.newestId   = Math.max(this.newestId, newest);
+
+                        this.hydrateMedia();
+                        this.fillHistory();
+                    }
+
+                    this.appEl.scrollTop = this.appEl.scrollHeight;
+                    this.updateJumpButton();
+                }
+
+                // кнопка «к последним сообщениям», когда их не видно
+                updateJumpButton() {
+                    if(!this.jumpBtn) return;
+
+                    const fromBottom = this.appEl.scrollHeight - this.appEl.scrollTop - this.appEl.clientHeight;
+                    this.jumpBtn.classList.toggle("shown", this.detached || fromBottom > this.appEl.clientHeight);
+                }
+
+                // переход к сообщению из поиска по всем чатам: /im?sel=…&msg=…
+                takeJump() {
+                    const params = new URLSearchParams(location.search);
+                    if(!params.has("msg")) return;
+
+                    const uuid = Number(params.get("msg"));
+                    params.delete("msg");
+                    history.replaceState(history.state, "", location.pathname + "?" + params);
+
+                    if(uuid > 0) this.goToMessage(uuid);
                 }
 
                 deleteMessages(msgIds) {
@@ -1284,7 +1433,6 @@
             })();
 
             // меню вложений и информация о собеседнике, по образу телеграма
-            const PEER_SEL   = {$correspondent instanceof \openvk\Web\Models\Entities\Club ? -$correspondent->getId() : $correspondent->getId()};
             const PEER_STR   = {
                 shortcode:  {tr("messenger_info_shortcode")},
                 birthday:   {tr("messenger_info_birthday")},
@@ -1303,6 +1451,9 @@
                 title:      {tr("messenger_chat_info")},
                 back:       {tr("messenger_info_back")},
                 close:      {tr("close")},
+                search:     {tr("messenger_search_in_chat")},
+                searchHint: {tr("messenger_search_in_chat_placeholder")},
+                notFound:   {tr("no_results_by_this_query")},
             };
             const OXYGEN     = "/assets/packages/static/openvk/img/oxygen-icons/64x64/";
             const KIND_ICONS = {
@@ -1372,14 +1523,17 @@
                                             <div class="im-peer-label">${ escapeHtml(PEER_STR.birthday) }</div>
                                         </div>` : "" }
                                 </div>` : "" }
-                            ${ info.counts.length ? `
-                                <div class="im-peer-section">
-                                    ${ info.counts.map(c => `
-                                        <a class="im-peer-row" data-kind="${ c.kind }" data-title="${ escapeHtml(c.title) }">
-                                            <img src="${ OXYGEN + KIND_ICONS[c.kind] }" alt="" />
-                                            <span>${ escapeHtml(c.label) }</span>
-                                        </a>`).join("") }
-                                </div>` : "" }
+                            <div class="im-peer-section">
+                                <a class="im-peer-row" data-act="search">
+                                    <img src="${ OXYGEN }actions/edit-find.png" alt="" />
+                                    <span>${ escapeHtml(PEER_STR.search) }</span>
+                                </a>
+                                ${ info.counts.map(c => `
+                                    <a class="im-peer-row" data-kind="${ c.kind }" data-title="${ escapeHtml(c.title) }">
+                                        <img src="${ OXYGEN + KIND_ICONS[c.kind] }" alt="" />
+                                        <span>${ escapeHtml(c.label) }</span>
+                                    </a>`).join("") }
+                            </div>
                             <div class="im-peer-section">
                                 <a class="im-peer-row" data-act="delete">
                                     <img src="${ OXYGEN }places/user-trash.png" alt="" />
@@ -1393,6 +1547,13 @@
                             </div>
                         </div>
                         <div class="im-peer-page im-peer-list" data-page="list" hidden></div>
+                        <div class="im-peer-page im-peer-search" data-page="search" hidden>
+                            <div class="im-peer-search--bar">
+                                <input type="search" placeholder="${ escapeHtml(PEER_STR.searchHint) }" autocomplete="off" />
+                            </div>
+                            <div class="im-peer-search--summary" hidden></div>
+                            <div class="im-peer-search--results"></div>
+                        </div>
                     `,
                     buttons: [escapeHtml(PEER_STR.close)],
                     callbacks: [Function.noop],
@@ -1406,6 +1567,7 @@
                 const body  = root.querySelector(".ovk-diag-body");
                 const main  = root.querySelector('[data-page="main"]');
                 const list  = root.querySelector('[data-page="list"]');
+                const found = root.querySelector('[data-page="search"]');
                 const close = () => msg.close();
 
                 // «назад» слева от «закрыть», виден только в разделе вложений
@@ -1435,14 +1597,82 @@
                     state.loading = false;
                     if(!state.done && body.scrollHeight <= body.clientHeight) loadMore();
                 };
+
+                // поиск по сообщениям чата, тоже с подгрузкой при прокрутке
+                const searchInput   = found.querySelector("input");
+                const searchSummary = found.querySelector(".im-peer-search--summary");
+                const searchList    = found.querySelector(".im-peer-search--results");
+                let search = null;
+
+                const renderFound = item => `
+                    <a class="im-search-msg" data-uuid="${ Number(item.uuid) }">
+                        <img class="im-search-msg--ava" src="${ escapeHtml(item.sender.avatar) }" alt="" loading="lazy" />
+                        <div class="im-search-msg--body">
+                            <div class="im-search-msg--head">
+                                <b>${ escapeHtml(item.sender.name) }</b>
+                                <span class="im-search-msg--date">${ escapeHtml(window.msgFullDate(item.ts)) }</span>
+                            </div>
+                            <div class="im-search-msg--text">${ item.text }</div>
+                        </div>
+                    </a>`;
+
+                const loadSearch = async () => {
+                    const state = search;
+                    if(!state || state.loading || state.done) return;
+                    state.loading = true;
+
+                    try {
+                        const res = await (await fetch(`/im/api/messages${ PEER_SEL }/search.json?q=${ encodeURIComponent(state.q) }&offset=${ state.offset }`)).json();
+                        if(state !== search) return;
+
+                        if(res.count !== null) {
+                            searchSummary.textContent = tr("messenger_search_found", res.count);
+                            searchSummary.hidden = res.count === 0;
+                        }
+
+                        state.offset += res.items.length;
+                        state.done = !res.more;
+                        searchList.insertAdjacentHTML("beforeend", res.items.map(renderFound).join(""));
+                        if(state.offset === 0) searchList.innerHTML = `<div class="im-peer-empty">${ escapeHtml(PEER_STR.notFound) }</div>`;
+                    } catch(e) {
+                        state.done = true;
+                        fastError(tr("messages_error_1"));
+                    }
+
+                    state.loading = false;
+                    if(!state.done && body.scrollHeight <= body.clientHeight) loadSearch();
+                };
+
+                let searchTimer = null;
+                const startSearch = () => {
+                    clearTimeout(searchTimer);
+
+                    const q = searchInput.value.trim();
+                    if((search?.q ?? "") === q) return;
+
+                    searchList.innerHTML = "";
+                    searchSummary.hidden = true;
+                    search = q === "" ? null : { q, offset: 0, loading: false, done: false };
+                    loadSearch();
+                };
+
+                searchInput.addEventListener("input", () => {
+                    clearTimeout(searchTimer);
+                    searchTimer = setTimeout(startSearch, 300);
+                });
+                searchInput.addEventListener("keydown", e => {
+                    if(e.key === "Enter") startSearch();
+                });
+
                 body.addEventListener("scroll", () => {
-                    if(body.scrollTop + body.clientHeight > body.scrollHeight - 100) loadMore();
+                    if(body.scrollTop + body.clientHeight > body.scrollHeight - 100) found.hidden ? loadMore() : loadSearch();
                 });
 
                 const showMain = () => {
                     current = null;
                     head.textContent = PEER_STR.title;
                     list.hidden = true;
+                    found.hidden = true;
                     main.hidden = false;
                     backBtn.hidden = true;
                     node.removeClass("im-peer-dialog-list");
@@ -1454,11 +1684,24 @@
                     list.className = `im-peer-page im-peer-list im-peer-list-${ kind }`;
                     list.innerHTML = "";
                     main.hidden = true;
+                    found.hidden = true;
                     list.hidden = false;
                     backBtn.hidden = false;
                     node.addClass("im-peer-dialog-list");
                     body.scrollTop = 0;
                     loadMore();
+                };
+
+                const showSearch = () => {
+                    current = null;
+                    head.textContent = PEER_STR.search;
+                    main.hidden = true;
+                    list.hidden = true;
+                    found.hidden = false;
+                    backBtn.hidden = false;
+                    node.addClass("im-peer-dialog-list");
+                    body.scrollTop = 0;
+                    searchInput.focus();
                 };
 
                 backBtn.addEventListener("click", showMain);
@@ -1510,7 +1753,17 @@
                     if(row) return showKind(row.dataset.kind, row.dataset.title);
 
                     const act = e.target.closest(".im-peer-row[data-act]");
-                    if(act) return act.dataset.act === "delete" ? askDelete() : toggleBlock(act);
+                    if(act) {
+                        if(act.dataset.act === "search") return showSearch();
+
+                        return act.dataset.act === "delete" ? askDelete() : toggleBlock(act);
+                    }
+
+                    const message = e.target.closest(".im-search-msg[data-uuid]");
+                    if(message) {
+                        close();
+                        return window.Msg.goToMessage(Number(message.dataset.uuid));
+                    }
 
                     const photo = e.target.closest(".im-peer-att--photo[data-id]");
                     if(photo) {
@@ -1531,6 +1784,39 @@
                 e.preventDefault();
                 openPeerInfo();
             });
+
+            // переход к дате переписки; дни без сообщений в календаре погашены
+            document.querySelector(".im-calendar-btn")?.addEventListener("click", e => {
+                e.preventDefault();
+
+                const visible = window.Msg.firstVisibleMessage();
+                openCalendarModal({
+                    title:       {tr("messenger_go_to_date")},
+                    locale:      MSG_LOCALE,
+                    initialDate: visible && typeof visible.timing.ts === "number" ? new Date(visible.timing.ts * 1000) : new Date(),
+                    loadMonth:   async (year, month) => {
+                        const from = Math.floor(new Date(year, month, 1).getTime() / 1000);
+                        const to   = Math.floor(new Date(year, month + 1, 1).getTime() / 1000);
+                        const tz   = -new Date(year, month, 15).getTimezoneOffset();
+                        const res  = await (await fetch(`/im/api/messages${ PEER_SEL }/calendar.json?from=${ from }&to=${ to }&tz=${ tz }`)).json();
+
+                        // сервер считает номера суток от эпохи уже по местному времени
+                        const days = res.days
+                            .map(day => new Date(day * 86400000))
+                            .filter(day => day.getUTCFullYear() === year && day.getUTCMonth() === month)
+                            .map(day => day.getUTCDate());
+
+                        return {
+                            days,
+                            min: res.first ? new Date(res.first * 1000) : null,
+                            max: res.last ? new Date(res.last * 1000) : null,
+                        };
+                    },
+                    onSelectDate: date => window.Msg.jump({ date: Math.floor(date.getTime() / 1000) }),
+                });
+            });
+
+            window.Msg.takeJump();
         })();
     </script>
 {/block}

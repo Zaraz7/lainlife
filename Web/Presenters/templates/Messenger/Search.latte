@@ -1,0 +1,101 @@
+{extends "../@layout.latte"}
+{block title}{_messenger_search_title}{if $query !== ""} — {$query}{/if}{/block}
+
+{block header}
+    <a href="/im">{_my_messages}</a> » {_messenger_search_title}
+{/block}
+
+{block content}
+    {include "searchbar.latte", query => $query, media => false}
+
+    <div n:if="sizeof($counts) > 0" class="tabs im-search-tabs">
+        <div n:foreach="$counts as $name => $count" n:attr="id => $section === $name ? 'activetabs'" class="tab">
+            <a n:attr="id => $section === $name ? 'act_tab_a'" href="/im/search?{http_build_query(['q' => $query !== '' ? $query : null, 'section' => $name])}">
+                {tr("messenger_search_$name")}<span n:if="$count > 0" class="im-search-tabs--count">{$count}</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="im-search-page">
+        {if is_null($section)}
+            <div class="im-search-empty">{_messenger_search_enter_query}</div>
+        {elseif sizeof($results) === 0}
+            <div class="im-search-empty">{in_array($section, ["chats", "messages"], true) ? tr("no_results_by_this_query") : tr("messenger_info_empty")}</div>
+        {elseif $section === "chats"}
+            <div class="crp-list">
+                {include "entries.latte", corresps => $results, dialogSettings => [], thisUser => $thisUser, hideMenu => true}
+            </div>
+        {elseif $section === "messages"}
+            <div class="im-search-results">
+                <a n:foreach="$results as $found" class="im-search-msg" href="{$found->url}">
+                    <img n:if="$found->saved" class="im-search-msg--ava" src="/assets/packages/static/openvk/img/im/saved_messages.png" alt="{_saved_messages}" loading="lazy" />
+                    <img n:if="!$found->saved" class="im-search-msg--ava" src="{$found->peer->getAvatarURL('miniscule')}" alt="{$found->peer->getCanonicalName()}" loading="lazy" />
+                    <div class="im-search-msg--body">
+                        <div class="im-search-msg--head">
+                            <b>{$found->saved ? tr("saved_messages") : $found->peer->getCanonicalName()}</b>
+                            <span class="im-search-msg--date">{$found->message->getSendTime()}</span>
+                        </div>
+                        <div class="im-search-msg--text">
+                            <img n:if="$found->own" class="im-search-msg--author" src="{$thisUser->getAvatarURL('miniscule')}" alt="" />
+                            {$found->text|noescape}
+                        </div>
+                    </div>
+                </a>
+            </div>
+        {elseif $section === "photo" || $section === "gif"}
+            <div class="im-search-results im-search-grid">
+                <div n:foreach="$results as $found" class="im-search-att">
+                    {if $section === "photo"}
+                        <a class="im-peer-att--photo" href="/photo{$found->att['id']}" data-id="{$found->att['id']}" data-url="{$found->att['url']}"><img src="{$found->att['thumb']}" alt="" loading="lazy" /></a>
+                    {else}
+                        <a class="im-peer-att--photo" href="{$found->att['link']}"><img src="{$found->att['url']}" alt="" loading="lazy" /></a>
+                    {/if}
+                    <a class="im-search-att--goto" href="{$found->url}" title="{_messenger_search_go_to_message}">{$found->chat}</a>
+                </div>
+            </div>
+        {else}
+            <div class="im-search-results im-search-rows">
+                <div n:foreach="$results as $found" class="im-search-att-row">
+                    {if $section === "video"}
+                        <a class="im-peer-att--row im-peer-att--video" data-id="{$found->att['id']}">
+                            <img src="{$found->att['thumb']}" alt="" loading="lazy" />
+                            <span class="im-peer-att--name">{$found->att['name']}</span>
+                            <span class="im-peer-att--meta">{$found->att['length']}</span>
+                        </a>
+                    {elseif $section === "doc"}
+                        <a class="im-peer-att--row" href="{$found->att['link']}">
+                            <img n:if="$found->att['preview']" src="{$found->att['preview']}" alt="" loading="lazy" />
+                            <span n:if="!$found->att['preview']" class="im-peer-att--ext">{$found->att['ext']}</span>
+                            <span class="im-peer-att--name">{$found->att['name']}</span>
+                            <span class="im-peer-att--meta">{$found->att['size']}</span>
+                        </a>
+                    {else}
+                        <div class="im-peer-att--audio">{$found->att['html']|noescape}</div>
+                    {/if}
+                    <a class="im-search-att--goto" href="{$found->url}" title="{_messenger_search_go_to_message}">{$found->chat}</a>
+                </div>
+            </div>
+        {/if}
+
+        <div style="margin-top: 3px;">
+            {include "../components/paginator.latte", conf => $paginatorConf}
+        </div>
+    </div>
+
+    <script>
+        // фото и видео открываются в просмотрщике, как в меню вложений чата
+        document.querySelector(".im-search-page")?.addEventListener("click", e => {
+            const photo = e.target.closest(".im-peer-att--photo[data-id]");
+            if(photo) {
+                e.preventDefault();
+                return OpenMiniature(e, photo.dataset.url, null, photo.dataset.id, null);
+            }
+
+            const video = e.target.closest(".im-peer-att--video[data-id]");
+            if(video) {
+                e.preventDefault();
+                return OpenVideo(video.dataset.id.split("_"));
+            }
+        });
+    </script>
+{/block}
