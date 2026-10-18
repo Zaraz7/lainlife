@@ -761,6 +761,17 @@
                             <span class="nobold">{_my_documents}</span>
                         </td>
                     </tr>
+                    <tr>
+                        <td width="120" valign="top" align="right" align="right">
+                            <input
+                                  n:attr="checked => $user->getLeftMenuItemStatus('stickers')"
+                                  type="checkbox"
+                                  name="menu_stickers" />
+                        </td>
+                        <td>
+                            <span class="nobold">{_stickers_store}</span>
+                        </td>
+                    </tr>
                     <tr style="display:none;">
                         <td width="120" valign="top" align="right" align="right">
                             <input

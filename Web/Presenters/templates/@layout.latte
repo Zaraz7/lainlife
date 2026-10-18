@@ -229,9 +229,10 @@
                             </a>
                             <a href="/settings" class="link my_settings">{_my_settings}</a>
 
-                            {if $thisUser->getLeftMenuItemStatus('docs') || $thisUser->getLeftMenuItemStatus('apps')}
+                            {if $thisUser->getLeftMenuItemStatus('docs') || $thisUser->getLeftMenuItemStatus('apps') || $thisUser->getLeftMenuItemStatus('stickers')}
                                 <div class="menu_divider"></div>
                                 <a n:if="$thisUser->getLeftMenuItemStatus('apps')" href="/apps?act=installed" class="link my_apps">{_apps}</a>
+                                <a n:if="$thisUser->getLeftMenuItemStatus('stickers')" href="/stickers" class="link my_stickers">{_stickers_store}</a>
                                 <a n:if="$thisUser->getLeftMenuItemStatus('docs')" href="/docs" class="link my_documents">{_my_documents}</a>
                                 {*<a n:if="$thisUser->getLeftMenuItemStatus('fave')" href="/fave" class="link my_bookmarks">{_bookmarks_tab}</a>*}
                             {/if}
