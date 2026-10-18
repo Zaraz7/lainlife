@@ -52,7 +52,3 @@ ORDER BY
   unpinned ASC,
   pinned ASC,
   time DESC
-LIMIT
-  ?
-OFFSET
-  ?

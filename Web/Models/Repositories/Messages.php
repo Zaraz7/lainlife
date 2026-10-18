@@ -46,7 +46,26 @@ class Messages
         $query   = file_get_contents(__DIR__ . "/../sql/get-correspondencies.tsql");
         DatabaseConnection::i()->getConnection()->query(file_get_contents(__DIR__ . "/../sql/mysql-msg-fix.tsql"));
         $hiddenOwner = $correspondent instanceof User ? $id : 0;
-        $coresps = DatabaseConnection::i()->getConnection()->query($query, $id, $class, $id, $class, $id, $class, $hiddenOwner, (int) $archived, $limit, $offset);
+        $rows = DatabaseConnection::i()->getConnection()->query($query, $id, $class, $id, $class, $id, $class, $hiddenOwner, (int) $archived)->fetchAll();
+
+        // закреплённые — сверху в своём порядке, остальные — от новых к старым. Порядок берётся из тех же настроек диалогов,
+        // по которым рисуется значок закрепа, чтобы чат с новым сообщением никогда не оказывался выше закреплённых
+        $settings = (new MessengerDialogs())->getAllFor($correspondent);
+        $pinned   = [];
+        $rest     = [];
+        foreach ($rows as $i => $row) {
+            $sel = $row->class === Club::class ? -(int) $row->id : (int) $row->id;
+            $pos = (int) ($settings[$sel]["pinned"] ?? 0);
+            if ($pos > 0) {
+                $pinned[] = [$pos, $i, $row];
+            } else {
+                $rest[] = [(int) $row->time, $i, $row];
+            }
+        }
+        usort($pinned, fn ($a, $b) => [$a[0], $a[1]] <=> [$b[0], $b[1]]);
+        usort($rest, fn ($a, $b) => [$b[0], $a[1]] <=> [$a[0], $b[1]]);
+
+        $coresps = array_slice(array_merge(array_column($pinned, 2), array_column($rest, 2)), $offset, $limit);
         foreach ($coresps as $c) {
             if ($c->class === 'openvk\Web\Models\Entities\User') {
                 $anotherCorrespondent = (new Users())->get($c->id);
