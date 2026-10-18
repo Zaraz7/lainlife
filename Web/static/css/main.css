@@ -2636,6 +2636,50 @@ span.ok-smile.ok-smile {
     border-bottom: 1px solid #c3cad2;
 }
 
+/* экран загрузки чата: пока скрипт не построил ленту, вместо сырой разметки шаблонов крутится индикатор */
+.messenger-app.im-loading {
+    position: relative;
+}
+
+.messenger-app.im-loading > :not(.im-chat-loader) {
+    visibility: hidden;
+    animation: im-loading-failsafe 0s 8s forwards;
+}
+
+.im-chat-loader {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 28px;
+    height: 28px;
+    margin: -14px 0 0 -14px;
+    box-sizing: border-box;
+    border: 3px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    opacity: .35;
+    animation: im-chat-loader-spin .8s linear infinite, im-loading-failsafe-hide 0s 8s forwards;
+}
+
+@keyframes im-chat-loader-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* если скрипт так и не отработал, через 8 секунд показываем как есть */
+@keyframes im-loading-failsafe {
+    to {
+        visibility: visible;
+    }
+}
+
+@keyframes im-loading-failsafe-hide {
+    to {
+        visibility: hidden;
+    }
+}
+
 .settings_delete {
     margin: -12px;
     padding: 12px;

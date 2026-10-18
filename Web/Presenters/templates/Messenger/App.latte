@@ -31,7 +31,9 @@
 {/block}
 
 {block wrap}
-    <div class="messenger-app">
+    {* im-loading прячет разметку шаблонов, пока скрипт не построит ленту *}
+    <div class="messenger-app im-loading">
+        <div class="im-chat-loader"></div>
         <div class="messenger-app--selection" style="display: none;" data-bind="visible: selectedMsgs().length > 0">
             <span data-bind="text: selectionLabel()"></span>
             <div class="messenger-app--selection---actions">
@@ -1040,7 +1042,7 @@
                     params.delete("msg");
                     history.replaceState(history.state, "", location.pathname + "?" + params);
 
-                    if(uuid > 0) this.goToMessage(uuid);
+                    if(uuid > 0) return this.goToMessage(uuid);
                 }
 
                 deleteMessages(msgIds) {
@@ -1838,7 +1840,12 @@
                 if(divider) openCalendar(ko.dataFor(divider));
             });
 
-            window.Msg.takeJump();
+            // экран загрузки снимается, когда лента готова; при переходе к сообщению — после перехода
+            Promise.resolve(window.Msg.takeJump()).finally(() => {
+                const app = document.querySelector(".messenger-app");
+                app?.classList.remove("im-loading");
+                app?.querySelector(".im-chat-loader")?.remove();
+            });
 
             // Esc возвращает из чата к списку диалогов, как в Telegram: сначала он снимает выделение, ответ и пересылку,
             // а открытые окна, просмотрщик и меню закрывает сам. Чтобы не потерять черновик, с текстом в поле ввода не уходим
