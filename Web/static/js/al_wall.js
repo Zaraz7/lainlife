@@ -3182,3 +3182,51 @@ if(Number(localStorage.getItem('ux.gif_autoplay') ?? 0) == 1) {
         })
     }
 };
+
+// удаление чужой записи администрацией или модераторами: окно с причиной, которую автор получит от аккаунта администрации
+u(document).on("click", "[data-moderation-delete]", (e) => {
+    e.preventDefault();
+
+    const prettyId = e.target.closest("[data-moderation-delete]").dataset.moderationDelete;
+    window.tippy?.hideAll?.();
+
+    const msg = new CMessageBox({
+        title: escapeHtml(tr("moderation_delete_post_title")),
+        body: `
+            <div class="moderation-delete-form">
+                <p>${ escapeHtml(tr("moderation_delete_post_text")) }</p>
+                <textarea maxlength="1000" placeholder="${ escapeHtml(tr("moderation_delete_reason_placeholder")) }"></textarea>
+            </div>`,
+        buttons: [tr("delete"), tr("cancel")],
+        callbacks: [async () => {
+            // окно закрывается сразу после нажатия, поэтому причину забираем до запроса
+            const fd = new FormData();
+            fd.set("hash", u("meta[name=csrf]").attr("value") ?? window.router?.csrf ?? "");
+            fd.set("reason", msg.getNode().find(".moderation-delete-form textarea").first()?.value ?? "");
+
+            let json;
+            try {
+                json = await (await fetch(`/wall${ prettyId }/moderate-delete`, { method: "POST", body: fd })).json();
+            } catch(err) {
+                return fastError(tr("error"));
+            }
+
+            if(!json.success) return fastError(json.flash?.message ?? tr("error"));
+
+            NewNotification(tr("moderation_delete_post_done"), tr(json.notified ? "moderation_delete_post_done_notified" : "moderation_delete_post_done_not_notified"), null, Function.noop, 5000);
+
+            // со страницы самой записи уходим на стену, в ленте и на стене запись просто пропадает
+            if(location.pathname === `/wall${ prettyId }`) {
+                const wall = Number(prettyId.split("_")[0]);
+                const url  = wall < 0 ? `/club${ -wall }` : `/id${ wall }`;
+                return window.router ? window.router.navigate(url) : location.assign(url);
+            }
+
+            document.querySelectorAll(`.post[data-id="${ prettyId }"]`).forEach(el => el.remove());
+        }, Function.noop],
+    });
+
+    msg.getNode().addClass("moderation-delete-dialog");
+    msg.getNode().find(".ovk-diag-action > button.button").first()?.classList.add("moderation-delete-btn");
+    msg.getNode().find(".moderation-delete-form textarea").first()?.focus();
+});

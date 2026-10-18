@@ -149,6 +149,11 @@
                         <a href="javascript:reportPost({$post->getId()})">{_report}</a> &nbsp;|&nbsp;
                     {/if}
 
+                    {* администрация и модераторы удаляют чужие записи, автору уходит причина *}
+                    {if !$canBeDeleted && isset($thisUser) && $thisUser->canModerateContent()}
+                        <a class="moderation-delete-link" href="#" data-moderation-delete="{$post->getPrettyId()}">{_moderation_delete_post}</a> &nbsp;|&nbsp;
+                    {/if}
+
                     {if !($forceNoPinLink ?? false) && $canBePinned}
                         {if $post->isPinned()}
                             <a href="/wall{$post->getPrettyId()}/pin?act=unpin&hash={rawurlencode($csrfToken)}">{_unpin}</a>

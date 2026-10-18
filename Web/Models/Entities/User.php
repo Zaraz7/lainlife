@@ -25,6 +25,8 @@ class User extends RowModel
     use Traits\TIgnorable;
     protected $tableName = "profiles";
 
+    private ?bool $canModerateContent = null; // см. canModerateContent()
+
     public const TYPE_DEFAULT = 0;
     public const TYPE_BOT     = 1;
 
@@ -1358,6 +1360,22 @@ class User extends RowModel
 
         $this->stateChanges("email", $email);
         $this->save();
+    }
+
+    /**
+     * Администраторы и модераторы инстанса: могут удалять чужие записи, сообщая автору причину.
+     */
+    public function canModerateContent(): bool
+    {
+        // проверяется у каждой записи на стене, а права за время запроса не меняются
+        if (!is_null($this->canModerateContent)) {
+            return $this->canModerateContent;
+        }
+
+        $chandlerUser = $this->getChandlerUser();
+
+        return $this->canModerateContent = $chandlerUser->can("access")->model("admin")->whichBelongsTo(null)
+            || $chandlerUser->can("admin")->model('openvk\Web\Models\Entities\Report')->whichBelongsTo(0);
     }
 
     public function adminNotify(string $message): bool

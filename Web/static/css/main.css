@@ -6616,3 +6616,44 @@ hr {
 .udlg-attachments a:hover {
     opacity: 1;
 }
+
+/* удаление чужой записи администрацией: красная кнопка и окно с причиной (al_wall.js) */
+.post-author .moderation-delete {
+    float: right;
+    width: 16px;
+    height: 16px;
+    margin-left: 2px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23d63d3d'/%3E%3Cpath d='M5.3 5.3l5.4 5.4M10.7 5.3l-5.4 5.4' stroke='white' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") center / 14px no-repeat;
+    opacity: .55;
+    transition-duration: .3s;
+}
+
+.post-author .moderation-delete:hover {
+    opacity: 1;
+}
+
+.moderation-delete-link,
+.moderation-delete-link:hover {
+    color: #d63d3d;
+}
+
+.moderation-delete-form p {
+    margin: 0 0 10px;
+}
+
+.moderation-delete-form textarea {
+    width: 100%;
+    min-height: 80px;
+    box-sizing: border-box;
+    resize: vertical;
+}
+
+.moderation-delete-dialog .ovk-diag-action > button.moderation-delete-btn {
+    border-color: #c53030;
+    background: #d63d3d;
+    color: #fff;
+}
+
+.moderation-delete-dialog .ovk-diag-action > button.moderation-delete-btn:hover {
+    background: #c53030;
+}

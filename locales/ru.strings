@@ -2731,3 +2731,15 @@
 "stickers_store_open" = "Магазин стикеров";
 "stickers_nothing_found" = "Ничего не найдено";
 "msg_preview_sticker" = "Стикер";
+
+"moderation_delete_post" = "Удалить (администрация)";
+"moderation_delete_post_title" = "Удаление чужой записи";
+"moderation_delete_post_text" = "Запись будет удалена, а автор получит сообщение от аккаунта администрации с причиной.";
+"moderation_delete_reason_placeholder" = "Причина удаления — её увидит автор";
+"moderation_delete_post_done" = "Запись удалена";
+"moderation_delete_post_done_notified" = "Автор получил сообщение с причиной.";
+"moderation_delete_post_done_not_notified" = "Автор не уведомлён: аккаунт администрации не настроен или это ваша запись.";
+"moderation_post_deleted_notify" = "Ваша запись от $1 была удалена администрацией сайта.";
+"moderation_post_deleted_notify_club" = "Запись от $1 в вашем сообществе «$2» была удалена администрацией сайта.";
+"moderation_post_deleted_notify_reason" = "Причина: $1";
+"moderation_post_deleted_notify_text" = "Текст записи: $1";

@@ -2788,3 +2788,15 @@
 "stickers_store_open" = "Sticker store";
 "stickers_nothing_found" = "Nothing found";
 "msg_preview_sticker" = "Sticker";
+
+"moderation_delete_post" = "Delete (administration)";
+"moderation_delete_post_title" = "Deleting someone else's post";
+"moderation_delete_post_text" = "The post will be deleted, and its author will get a message with the reason from the administration account.";
+"moderation_delete_reason_placeholder" = "Reason for deletion — the author will see it";
+"moderation_delete_post_done" = "Post deleted";
+"moderation_delete_post_done_notified" = "The author has been sent the reason.";
+"moderation_delete_post_done_not_notified" = "The author was not notified: the administration account is not configured, or this is your own post.";
+"moderation_post_deleted_notify" = "Your post from $1 has been deleted by the site administration.";
+"moderation_post_deleted_notify_club" = "A post from $1 in your community \"$2\" has been deleted by the site administration.";
+"moderation_post_deleted_notify_reason" = "Reason: $1";
+"moderation_post_deleted_notify_text" = "Post text: $1";

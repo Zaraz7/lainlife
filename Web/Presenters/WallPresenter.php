@@ -653,6 +653,50 @@ final class WallPresenter extends OpenVKPresenter
         $this->redirect($wall < 0 ? "/club" . ($wall * -1) : "/id" . $wall);
     }
 
+    // удаление чужой записи администрацией или модераторами: автор получает причину от аккаунта администрации
+    public function renderModerateDelete(int $wall, int $post_id): void
+    {
+        $this->assertUserLoggedIn();
+        $this->willExecuteWriteAction(true);
+
+        if ($_SERVER["REQUEST_METHOD"] !== "POST") {
+            $this->flashFail("err", tr("error"), tr("forbidden"), 405, true);
+        }
+
+        $reason = mb_substr(trim((string) $this->postParam("reason")), 0, 1000);
+        if (!$this->user->identity->canModerateContent()) {
+            $this->flashFail("err", tr("error"), tr("forbidden"), 403, true);
+        }
+
+        $post = $this->posts->getPostById($wall, $post_id, true);
+        if (!$post || $post->isDeleted()) {
+            $this->flashFail("err", tr("failed_to_delete_post"), tr("error_4"), 404, true);
+        }
+
+        // запись от имени сообщества — сообщение получает его владелец
+        $author    = $post->getOwner();
+        $recipient = $author instanceof Club ? $author->getOwner() : $author;
+
+        $lines = [$author instanceof Club
+            ? tr("moderation_post_deleted_notify_club", (string) $post->getPublicationTime(), $author->getName())
+            : tr("moderation_post_deleted_notify", (string) $post->getPublicationTime())];
+        if ($reason !== "") {
+            $lines[] = tr("moderation_post_deleted_notify_reason", $reason);
+        }
+
+        $text = trim(html_entity_decode(strip_tags((string) $post->getText(false)), ENT_QUOTES | ENT_HTML5, "UTF-8"));
+        if ($text !== "") {
+            $lines[] = tr("moderation_post_deleted_notify_text", mb_strlen($text) > 200 ? mb_substr($text, 0, 200) . "…" : $text);
+        }
+
+        $post->unwire();
+        $post->delete();
+
+        $notified = $recipient instanceof User && $recipient->getId() !== $this->user->id && $recipient->adminNotify(implode("\n\n", $lines));
+
+        $this->returnJson(["success" => true, "notified" => $notified]);
+    }
+
     public function renderPin(int $wall, int $post_id): void
     {
         $this->assertUserLoggedIn();

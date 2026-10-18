@@ -62,6 +62,8 @@
 
                     <a n:if="$canBeDeleted && !($forceNoDeleteLink ?? false) && $compact == false" class="delete" href="/wall{$post->getPrettyId()}/delete"></a>
                     <a n:if="!$canBeDeleted" class="report" title="{_report}" href="javascript:reportPost({$post->getId()})"></a>
+                    {* администрация и модераторы удаляют чужие записи, автору уходит причина *}
+                    <a n:if="!$canBeDeleted && isset($thisUser) && $thisUser->canModerateContent() && $compact == false" class="moderation-delete" title="{_moderation_delete_post}" href="#" data-moderation-delete="{$post->getPrettyId()}"></a>
                     
                     {if $canBePinned && !($forceNoPinLink ?? false) && $compact == false}
                         {if $post->isPinned()}
