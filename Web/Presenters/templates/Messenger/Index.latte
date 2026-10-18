@@ -10,6 +10,10 @@
 {block content}
     {include "searchbar.latte"}
 
+    {* результаты поиска, пока он введён; список чатов при этом только прячется *}
+    <div class="im-search-live" hidden></div>
+
+    <div class="im-dialogs">
     <div class="tabs">
         <div n:attr="id => !$isArchive ? 'activetabs'" class="tab">
             <a n:attr="id => !$isArchive ? 'act_tab_a'" href="/im">{_all_messages}</a>
@@ -310,4 +314,5 @@
         <br/>
         <center>{$isArchive ? tr("messenger_archive_empty") : tr("no_messages")}</center>
     {/if}
+    </div>
 {/block}

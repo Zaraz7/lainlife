@@ -305,6 +305,8 @@ routes:
       handler: "Messenger->archive"
     - url: "/im/search"
       handler: "Messenger->search"
+    - url: "/im/api/search"
+      handler: "Messenger->apiSearch"
     - url: "/im/api/list"
       handler: "Messenger->apiList"
     - url: "/im/sel{num}"

@@ -9,3 +9,137 @@
         </a>
     </div>
 </form>
+
+<script>
+    // результаты обновляются по мере ввода, как поиск по сообщениям в чате, и догружаются при прокрутке;
+    // контейнер результатов стоит ниже этого скрипта, поэтому при обычной загрузке ждём разбора страницы
+    (() => {
+        const init = () => {
+            const form = document.querySelector(".im-search-bar");
+            const live = document.querySelector(".im-search-live");
+            if(!form || !live) return;
+
+            const input   = form.querySelector('input[type="search"]');
+            const dialogs = document.querySelector(".im-dialogs"); // список чатов на /im, на странице поиска его нет
+            const initial = location.pathname + location.search;
+
+            let last    = input.value.trim();
+            let timer   = null;
+            let abort   = null;
+            let version = 0;
+            let loading = false;
+
+            // выбранная вкладка чатов или сообщений сохраняется, остальное выбирает сервер
+            const searchUrl = (base, q) => {
+                const params  = new URLSearchParams();
+                const section = new URLSearchParams(location.search).get("section");
+                if(q !== "") params.set("q", q);
+                if(q !== "" && (section === "chats" || section === "messages")) params.set("section", section);
+
+                return base + (params.toString() ? "?" + params : "");
+            };
+
+            const nearBottom = () => window.innerHeight + window.scrollY > document.documentElement.scrollHeight - 300;
+
+            const loadMore = async () => {
+                const page = live.querySelector(".im-search-page");
+                if(live.hidden || loading || !page?.dataset.next) return;
+
+                const current = version;
+                loading = true;
+
+                try {
+                    const res = await fetch(page.dataset.next);
+                    if(!res.ok) throw new Error(res.status);
+                    const next = new DOMParser().parseFromString(await res.text(), "text/html");
+
+                    if(current === version) {
+                        page.querySelector("[data-items]")?.append(...(next.querySelector("[data-items]")?.children ?? []));
+                        page.dataset.next = next.querySelector(".im-search-page")?.dataset.next ?? "";
+                    }
+                } catch(e) {
+                    page.dataset.next = "";
+                    console.error("Search page loading failed", e);
+                }
+
+                loading = false;
+                if(current === version && nearBottom()) loadMore();
+            };
+
+            const update = async () => {
+                clearTimeout(timer);
+
+                const q = input.value.trim();
+                if(q === last) return;
+                last = q;
+
+                abort?.abort();
+                const current = ++version;
+
+                // на /im пустой запрос возвращает список чатов
+                if(q === "" && dialogs) {
+                    live.hidden = true;
+                    live.innerHTML = "";
+                    dialogs.hidden = false;
+                    live.classList.remove("loading");
+                    return history.replaceState(history.state, "", initial);
+                }
+
+                abort = new AbortController();
+                live.classList.add("loading");
+
+                try {
+                    const res = await fetch(searchUrl("/im/api/search", q), { signal: abort.signal });
+                    if(!res.ok) throw new Error(res.status);
+                    const html = await res.text();
+                    if(current !== version) return;
+
+                    live.innerHTML = html;
+                    live.hidden = false;
+                    if(dialogs) dialogs.hidden = true;
+                    history.replaceState(history.state, "", searchUrl("/im/search", q));
+                    if(nearBottom()) loadMore();
+                } catch(e) {
+                    if(e.name !== "AbortError") console.error("Search failed", e);
+                }
+
+                if(current === version) live.classList.remove("loading");
+            };
+
+            input.addEventListener("input", () => {
+                clearTimeout(timer);
+                timer = setTimeout(update, 300);
+            });
+
+            // Enter и «Найти» ищут сразу, без перехода на другую страницу
+            form.addEventListener("submit", e => {
+                e.preventDefault();
+                update();
+            });
+
+            const onScroll = () => {
+                if(!document.body.contains(form)) return window.removeEventListener("scroll", onScroll);
+                if(nearBottom()) loadMore();
+            };
+            window.addEventListener("scroll", onScroll, { passive: true });
+            if(nearBottom()) loadMore();
+
+            // фото и видео открываются в просмотрщике, как в меню вложений чата
+            live.addEventListener("click", e => {
+                const photo = e.target.closest(".im-peer-att--photo[data-id]");
+                if(photo) {
+                    e.preventDefault();
+                    return OpenMiniature(e, photo.dataset.url, null, photo.dataset.id, null);
+                }
+
+                const video = e.target.closest(".im-peer-att--video[data-id]");
+                if(video) {
+                    e.preventDefault();
+                    return OpenVideo(video.dataset.id.split("_"));
+                }
+            });
+        };
+
+        document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", init, { once: true }) : init();
+    })();
+</script>

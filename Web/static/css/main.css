@@ -2048,6 +2048,12 @@ span.ok-smile.ok-smile {
     padding: 5px 6px;
 }
 
+/* результаты пересчитываются по мере ввода */
+.im-search-live.loading {
+    opacity: .6;
+    transition: opacity .15s;
+}
+
 .im-search-bar--media {
     display: flex;
     gap: 2px;

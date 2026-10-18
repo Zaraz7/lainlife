@@ -757,6 +757,19 @@ final class MessengerPresenter extends OpenVKPresenter
     {
         $this->assertUserLoggedIn();
 
+        $this->prepareSearch();
+    }
+
+    // те же результаты без страницы вокруг: поиск обновляет их по мере ввода и догружает при прокрутке
+    public function renderApiSearch(): void
+    {
+        $this->assertUserLoggedIn();
+
+        $this->prepareSearch();
+    }
+
+    private function prepareSearch(): void
+    {
         $me        = $this->user->identity;
         $query     = trim((string) $this->queryParam("q"));
         $page      = max(1, (int) ($this->queryParam("p") ?? 1));
@@ -794,15 +807,7 @@ final class MessengerPresenter extends OpenVKPresenter
             $results = $this->messages->searchCorrespondencies($me, $query, $matchSelf, $page, $perPage);
         } elseif ($section === "messages") {
             foreach ($this->messages->searchMessages($me, $query, $offset, $perPage) as $message) {
-                $peer      = $this->getMessagePeer($message);
-                $results[] = (object) [
-                    "message" => $message,
-                    "peer"    => $peer,
-                    "url"     => "/im?sel=" . $this->getSel($peer) . "&msg=" . $message->getId(),
-                    "saved"   => $this->isSelf($peer),
-                    "own"     => !$this->isSelf($peer) && $this->isSelf($message->getSender()),
-                    "text"    => $this->searchPreview($message, $query),
-                ];
+                $results[] = $this->describeFoundMessage($message, $query);
             }
         } elseif (!is_null($section)) {
             foreach ($this->messages->getAttachments($me, $section, $offset, $perPage) as [$item, $message]) {
@@ -820,17 +825,30 @@ final class MessengerPresenter extends OpenVKPresenter
             }
         }
 
-        $this->template->query         = $query;
-        $this->template->section       = $section;
-        $this->template->counts        = $counts;
-        $this->template->results       = $results;
-        $this->template->paginatorConf = (object) [
-            "count"   => is_null($section) ? 0 : $counts[$section],
-            "page"    => $page,
-            "amount"  => sizeof($results),
-            "perPage" => $perPage,
-            "tidy"    => false,
-            "atTop"   => false,
+        $count = is_null($section) ? 0 : $counts[$section];
+
+        $this->template->query    = $query;
+        $this->template->section  = $section;
+        $this->template->counts   = $counts;
+        $this->template->results  = $results;
+        // следующая страница этого же раздела, её подгружает прокрутка
+        $this->template->nextPage = $page * $perPage < $count
+            ? "/im/api/search?" . http_build_query(["q" => $query !== "" ? $query : null, "section" => $section, "p" => $page + 1])
+            : null;
+    }
+
+    // найденное сообщение для поиска по всем чатам: в каком оно диалоге и куда ведёт
+    private function describeFoundMessage(Message $message, string $query): object
+    {
+        $peer = $this->getMessagePeer($message);
+
+        return (object) [
+            "message" => $message,
+            "peer"    => $peer,
+            "url"     => "/im?sel=" . $this->getSel($peer) . "&msg=" . $message->getId(),
+            "saved"   => $this->isSelf($peer),
+            "own"     => !$this->isSelf($peer) && $this->isSelf($message->getSender()),
+            "text"    => $this->searchPreview($message, $query),
         ];
     }
 
