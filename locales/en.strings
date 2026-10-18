@@ -1487,8 +1487,8 @@
 "messenger_search_photo" = "Photos";
 "messenger_search_video" = "Videos";
 "messenger_search_gif" = "GIFs";
-"messenger_search_audio" = "Music";
-"messenger_search_doc" = "Files";
+"messenger_search_audio" = "Audio";
+"messenger_search_doc" = "Documents";
 "messenger_search_in_chat" = "Search messages";
 "messenger_search_in_chat_placeholder" = "Message text";
 "messenger_search_found_zero" = "Nothing found";

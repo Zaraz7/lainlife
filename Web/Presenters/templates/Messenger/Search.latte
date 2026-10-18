@@ -6,7 +6,7 @@
 {/block}
 
 {block content}
-    {include "searchbar.latte", query => $query, media => false}
+    {include "searchbar.latte", query => $query, open => true}
 
     <div class="im-search-live">
         {include "searchresults.latte"}

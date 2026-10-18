@@ -909,8 +909,7 @@ ul {
     border-color: #2c2640;
 }
 
-.im-search-msg:hover,
-.im-search-bar--media a:hover {
+.im-search-msg:hover {
     background: rgba(122, 156, 196, .1);
 }
 

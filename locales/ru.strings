@@ -1428,8 +1428,8 @@
 "messenger_search_photo" = "Фото";
 "messenger_search_video" = "Видео";
 "messenger_search_gif" = "GIF";
-"messenger_search_audio" = "Музыка";
-"messenger_search_doc" = "Файлы";
+"messenger_search_audio" = "Аудио";
+"messenger_search_doc" = "Документы";
 "messenger_search_in_chat" = "Поиск по сообщениям";
 "messenger_search_in_chat_placeholder" = "Текст сообщения";
 "messenger_search_found_zero" = "Ничего не найдено";

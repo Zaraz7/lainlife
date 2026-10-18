@@ -1,18 +1,20 @@
 {* результаты поиска по всем чатам: на странице поиска и во фрагменте, который поиск подставляет по мере ввода *}
-<div n:if="sizeof($counts) > 0" class="tabs im-search-tabs">
+<div class="tabs im-search-tabs">
     <div n:foreach="$counts as $name => $count" n:attr="id => $section === $name ? 'activetabs'" class="tab">
-        <a n:attr="id => $section === $name ? 'act_tab_a'" href="/im/search?{http_build_query(['q' => $query !== '' ? $query : null, 'section' => $name])}">
-            {tr("messenger_search_$name")}<span n:if="$count > 0" class="im-search-tabs--count">{$count}</span>
+        <a n:attr="id => $section === $name ? 'act_tab_a'" href="/im/search?{http_build_query(['q' => $query !== '' ? $query : null, 'section' => $name])}" data-section="{$name}">
+            {tr("messenger_search_$name")}<span n:if="$count > 0 && ($query !== '' || !in_array($name, ['chats', 'messages'], true))" class="im-search-tabs--count">{$count}</span>
         </a>
     </div>
 </div>
 
 {* data-items — куда дописывать следующие страницы, data-next — откуда их брать *}
 <div class="im-search-page" data-next="{$nextPage}">
-    {if is_null($section)}
+    {if $section === "messages" && $query === ""}
         <div class="im-search-empty">{_messenger_search_enter_query}</div>
     {elseif sizeof($results) === 0}
-        <div class="im-search-empty">{in_array($section, ["chats", "messages"], true) ? tr("no_results_by_this_query") : tr("messenger_info_empty")}</div>
+        <div class="im-search-empty">
+            {if $section === "chats" && $query === ""}{_no_messages}{elseif in_array($section, ["chats", "messages"], true)}{_no_results_by_this_query}{else}{_messenger_info_empty}{/if}
+        </div>
     {elseif $section === "chats"}
         <div class="crp-list" data-items>
             {include "entries.latte", corresps => $results, dialogSettings => [], thisUser => $thisUser, hideMenu => true}

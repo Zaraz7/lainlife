@@ -1,16 +1,13 @@
-{* поиск по всем чатам, над списком диалогов и на странице результатов *}
-<form class="im-search-bar" action="/im/search" method="get">
-    <input type="search" name="q" value="{$query ?? ''}" placeholder="{_messenger_search_placeholder}" autocomplete="off" />
-    <input type="submit" class="button" value="{_search_button}" />
-    <div n:if="$media ?? true" class="im-search-bar--media">
-        <a n:foreach="['photo' => 'application-x-egon', 'video' => 'application-vnd.rn-realmedia', 'gif' => 'application-xsd', 'audio' => 'audio-ac3', 'doc' => 'application-octet-stream'] as $kind => $icon"
-           href="/im/search?section={$kind}" title="{tr('messenger_search_' . $kind)}">
-            <img src="/assets/packages/static/openvk/img/oxygen-icons/16x16/mimetypes/{$icon}.png" alt="{tr('messenger_search_' . $kind)}" />
-        </a>
+{* поиск по всем чатам, над списком диалогов и на странице результатов; open — поиск уже открыт *}
+<form n:class="im-search-bar, ($open ?? false) ? open" action="/im/search" method="get">
+    <div class="im-search-bar--field">
+        <input type="search" name="q" value="{$query ?? ''}" placeholder="{_messenger_search_placeholder}" autocomplete="off" />
+        <button type="button" class="im-search-bar--close" title="{_close}" aria-label="{_close}"></button>
     </div>
 </form>
 
 <script>
+    // как в Telegram: нажатие на строку открывает поиск с вкладками вместо списка чатов, крестик или Esc закрывают его;
     // результаты обновляются по мере ввода, как поиск по сообщениям в чате, и догружаются при прокрутке;
     // контейнер результатов стоит ниже этого скрипта, поэтому при обычной загрузке ждём разбора страницы
     (() => {
@@ -20,21 +17,22 @@
             if(!form || !live) return;
 
             const input   = form.querySelector('input[type="search"]');
+            const cross   = form.querySelector(".im-search-bar--close");
             const dialogs = document.querySelector(".im-dialogs"); // список чатов на /im, на странице поиска его нет
             const initial = location.pathname + location.search;
 
-            let last    = input.value.trim();
+            // вкладка, выбранная вручную; без неё раздел выбирает сервер
+            let section = new URLSearchParams(location.search).get("section");
+            let last    = form.classList.contains("open") ? input.value.trim() : null;
             let timer   = null;
             let abort   = null;
             let version = 0;
             let loading = false;
 
-            // выбранная вкладка чатов или сообщений сохраняется, остальное выбирает сервер
             const searchUrl = (base, q) => {
-                const params  = new URLSearchParams();
-                const section = new URLSearchParams(location.search).get("section");
+                const params = new URLSearchParams();
                 if(q !== "") params.set("q", q);
-                if(q !== "" && (section === "chats" || section === "messages")) params.set("section", section);
+                if(section) params.set("section", section);
 
                 return base + (params.toString() ? "?" + params : "");
             };
@@ -66,26 +64,19 @@
                 if(current === version && nearBottom()) loadMore();
             };
 
-            const update = async () => {
+            const update = async (force = false) => {
                 clearTimeout(timer);
 
                 const q = input.value.trim();
-                if(q === last) return;
+                if(q === last && !force) return;
+
+                // вложения по запросу не фильтруются, поэтому новый запрос уводит с них к чатам или сообщениям
+                if(q !== last && q !== "" && section !== "chats" && section !== "messages") section = null;
                 last = q;
 
                 abort?.abort();
-                const current = ++version;
-
-                // на /im пустой запрос возвращает список чатов
-                if(q === "" && dialogs) {
-                    live.hidden = true;
-                    live.innerHTML = "";
-                    dialogs.hidden = false;
-                    live.classList.remove("loading");
-                    return history.replaceState(history.state, "", initial);
-                }
-
                 abort = new AbortController();
+                const current = ++version;
                 live.classList.add("loading");
 
                 try {
@@ -95,9 +86,7 @@
                     if(current !== version) return;
 
                     live.innerHTML = html;
-                    live.hidden = false;
-                    if(dialogs) dialogs.hidden = true;
-                    history.replaceState(history.state, "", searchUrl("/im/search", q));
+                    history.replaceState(history.state, "", q === "" && !section && dialogs ? initial : searchUrl("/im/search", q));
                     if(nearBottom()) loadMore();
                 } catch(e) {
                     if(e.name !== "AbortError") console.error("Search failed", e);
@@ -106,14 +95,59 @@
                 if(current === version) live.classList.remove("loading");
             };
 
+            const open = () => {
+                if(form.classList.contains("open")) return;
+
+                form.classList.add("open");
+                live.hidden = false;
+                if(dialogs) dialogs.hidden = true;
+                update(true);
+            };
+
+            const close = () => {
+                // на странице поиска списка чатов нет: закрыть поиск — значит вернуться к чатам
+                if(!dialogs) return window.router ? window.router.navigate("/im") : location.assign("/im");
+
+                clearTimeout(timer);
+                abort?.abort();
+                ++version;
+
+                input.value = "";
+                input.blur();
+                section = null;
+                last    = null;
+
+                form.classList.remove("open");
+                live.hidden = true;
+                live.innerHTML = "";
+                live.classList.remove("loading");
+                dialogs.hidden = false;
+                history.replaceState(history.state, "", initial);
+            };
+
+            input.addEventListener("focus", open);
+
             input.addEventListener("input", () => {
+                open();
                 clearTimeout(timer);
                 timer = setTimeout(update, 300);
             });
 
-            // Enter и «Найти» ищут сразу, без перехода на другую страницу
+            input.addEventListener("keydown", e => {
+                if(e.key !== "Escape") return;
+
+                e.preventDefault();
+                close();
+            });
+
+            // без этого нажатие на крестик сначала уводит фокус с поля
+            cross.addEventListener("mousedown", e => e.preventDefault());
+            cross.addEventListener("click", close);
+
+            // Enter ищет сразу, без перехода на другую страницу
             form.addEventListener("submit", e => {
                 e.preventDefault();
+                open();
                 update();
             });
 
@@ -124,8 +158,21 @@
             window.addEventListener("scroll", onScroll, { passive: true });
             if(nearBottom()) loadMore();
 
-            // фото и видео открываются в просмотрщике, как в меню вложений чата
             live.addEventListener("click", e => {
+                // вкладки переключаются на месте, без перехода
+                const tab = e.target.closest(".im-search-tabs a[data-section]");
+                if(tab) {
+                    e.preventDefault();
+                    if(tab.closest("#activetabs")) return;
+
+                    section = tab.dataset.section;
+                    live.querySelectorAll(".im-search-tabs [id]").forEach(el => el.removeAttribute("id"));
+                    tab.parentElement.id = "activetabs";
+                    tab.id = "act_tab_a";
+                    return update(true);
+                }
+
+                // фото и видео открываются в просмотрщике, как в меню вложений чата
                 const photo = e.target.closest(".im-peer-att--photo[data-id]");
                 if(photo) {
                     e.preventDefault();

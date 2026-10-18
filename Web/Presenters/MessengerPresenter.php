@@ -774,25 +774,23 @@ final class MessengerPresenter extends OpenVKPresenter
         $query     = trim((string) $this->queryParam("q"));
         $page      = max(1, (int) ($this->queryParam("p") ?? 1));
         $requested = (string) $this->queryParam("section");
-        $matchSelf = $query !== "" && mb_stripos(tr("saved_messages"), $query) !== false;
+        $matchSelf = $query === "" || mb_stripos(tr("saved_messages"), $query) !== false;
 
-        // чаты и сообщения ищутся по запросу, а вложения показываются все; пустые вкладки вложений не показываем
-        $counts = [];
-        if ($query !== "") {
-            $counts["chats"]    = $this->messages->searchCorrespondenciesCount($me, $query, $matchSelf);
-            $counts["messages"] = $this->messages->searchMessagesCount($me, $query);
-        }
+        // вкладки показываются всегда, как в Telegram; чаты и сообщения ищутся по запросу, а вложения показываются все,
+        // без запроса во вкладке чатов — все чаты, новые первыми
+        $counts = [
+            "chats"    => $this->messages->searchCorrespondenciesCount($me, $query, $matchSelf),
+            "messages" => $query !== "" ? $this->messages->searchMessagesCount($me, $query) : 0,
+        ];
 
         $attachments = $this->messages->getAttachmentsCount($me);
         foreach (self::SEARCH_MEDIA as $kind) {
-            if ($attachments[$kind] > 0 || $kind === $requested) {
-                $counts[$kind] = $attachments[$kind];
-            }
+            $counts[$kind] = $attachments[$kind];
         }
 
         $section = $requested;
         if (!isset($counts[$section])) {
-            $section = ($query !== "" && $counts["chats"] === 0) ? "messages" : array_key_first($counts);
+            $section = ($query !== "" && $counts["chats"] === 0) ? "messages" : "chats";
         }
 
         $perPage = match ($section) {
@@ -806,10 +804,12 @@ final class MessengerPresenter extends OpenVKPresenter
         if ($section === "chats") {
             $results = $this->messages->searchCorrespondencies($me, $query, $matchSelf, $page, $perPage);
         } elseif ($section === "messages") {
-            foreach ($this->messages->searchMessages($me, $query, $offset, $perPage) as $message) {
-                $results[] = $this->describeFoundMessage($message, $query);
+            if ($query !== "") {
+                foreach ($this->messages->searchMessages($me, $query, $offset, $perPage) as $message) {
+                    $results[] = $this->describeFoundMessage($message, $query);
+                }
             }
-        } elseif (!is_null($section)) {
+        } else {
             foreach ($this->messages->getAttachments($me, $section, $offset, $perPage) as [$item, $message]) {
                 $peer = $this->getMessagePeer($message);
                 $att  = $this->simplifyAttachment($item);
@@ -825,7 +825,7 @@ final class MessengerPresenter extends OpenVKPresenter
             }
         }
 
-        $count = is_null($section) ? 0 : $counts[$section];
+        $count = $counts[$section];
 
         $this->template->query    = $query;
         $this->template->section  = $section;
