@@ -1942,10 +1942,7 @@ span.ok-smile.ok-smile {
 }
 
 .im-peer-search--bar input[type="search"] {
-    padding: 5px 6px 5px 25px;
-    background-image: url("/assets/packages/static/openvk/img/oxygen-icons/16x16/actions/edit-find.png");
-    background-position: 5px center;
-    background-repeat: no-repeat;
+    padding: 5px 6px;
 }
 
 .im-peer-search--summary {
