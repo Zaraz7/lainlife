@@ -1941,8 +1941,7 @@ span.ok-smile.ok-smile {
     background: #fff;
 }
 
-.im-peer-search--bar input[type="search"],
-.im-search-bar input[type="search"] {
+.im-peer-search--bar input[type="search"] {
     padding: 5px 6px 5px 25px;
     background-image: url("/assets/packages/static/openvk/img/oxygen-icons/16x16/actions/edit-find.png");
     background-position: 5px center;
@@ -2046,6 +2045,7 @@ span.ok-smile.ok-smile {
     flex: 1;
     width: auto;
     min-width: 0;
+    padding: 5px 6px;
 }
 
 .im-search-bar--media {
