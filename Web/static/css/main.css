@@ -1480,6 +1480,17 @@ table.User {
     user-select: none;
 }
 
+/* по нажатию на дату открывается календарь; скрытая плашка нажатия пропускает */
+.im_floating_date_wrap.shown {
+    opacity: 1;
+}
+
+.im_floating_date_wrap.shown b,
+.messenger-app--messages-day-time b {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
 .messenger-app--messages-day-time {
     display: flex;
     justify-content: center;

@@ -605,12 +605,12 @@
                     });
 
                     if(!msg || typeof msg.timing.ts !== "number" || dividerAtTop || this.appEl.scrollHeight <= this.appEl.clientHeight) {
-                        wrap.style.opacity = 0;
+                        wrap.classList.remove("shown");
                         return;
                     }
 
                     wrap.firstElementChild.textContent = window.msgDay(msg.timing.ts);
-                    wrap.style.opacity = 1;
+                    wrap.classList.add("shown");
                 }
 
                 appendMessages(messages) {
@@ -1798,14 +1798,11 @@
             });
 
             // переход к дате переписки; дни без сообщений в календаре погашены
-            document.querySelector(".im-calendar-btn")?.addEventListener("click", e => {
-                e.preventDefault();
-
-                const visible = window.Msg.firstVisibleMessage();
+            const openCalendar = (message = window.Msg.firstVisibleMessage()) => {
                 openCalendarModal({
                     title:       {tr("messenger_go_to_date")},
                     locale:      MSG_LOCALE,
-                    initialDate: visible && typeof visible.timing.ts === "number" ? new Date(visible.timing.ts * 1000) : new Date(),
+                    initialDate: message && typeof message.timing.ts === "number" ? new Date(message.timing.ts * 1000) : new Date(),
                     loadMonth:   async (year, month) => {
                         const from = Math.floor(new Date(year, month, 1).getTime() / 1000);
                         const to   = Math.floor(new Date(year, month + 1, 1).getTime() / 1000);
@@ -1826,6 +1823,19 @@
                     },
                     onSelectDate: date => window.Msg.jump({ date: Math.floor(date.getTime() / 1000) }),
                 });
+            };
+
+            document.querySelector(".im-calendar-btn")?.addEventListener("click", e => {
+                e.preventDefault();
+                openCalendar();
+            });
+
+            // календарь открывается и по нажатию на дату над сообщениями: плавающую или разделитель дня
+            document.querySelector(".messenger-app--messages")?.addEventListener("click", e => {
+                if(e.target.closest(".im_floating_date_wrap.shown b")) return openCalendar();
+
+                const divider = e.target.closest(".messenger-app--messages-day-time b");
+                if(divider) openCalendar(ko.dataFor(divider));
             });
 
             window.Msg.takeJump();
