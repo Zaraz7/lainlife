@@ -12,7 +12,7 @@
 
     <div class="crp-entry--image">
         {if $isSaved}
-            <img src="/assets/packages/static/openvk/img/im/saved_messages.png"
+            <img src="{($theme ?? null)?->getSavedMessagesAvatar() ?? '/assets/packages/static/openvk/img/im/saved_messages.png'}"
             alt="{_saved_messages}" loading=lazy />
         {else}
             <img src="{$recipient->getAvatarURL('miniscule')}"

@@ -107,6 +107,12 @@ class Themepack
         return $this->fetchResource("stylesheet.scss", true) ?? $this->fetchResource("stylesheet.css", true);
     }
 
+    // своя аватарка «Избранного», если тема положила её в res/saved_messages.png; иначе используется общая
+    public function getSavedMessagesAvatar(): ?string
+    {
+        return file_exists("$this->home/res/saved_messages.png") ? "/themepack/$this->id/$this->ver/resource/saved_messages.png" : null;
+    }
+
     public function fetchStaticResource(string $name): ?string
     {
         return $this->fetchResource("res/$name");

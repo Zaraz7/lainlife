@@ -22,7 +22,7 @@
     {elseif $section === "messages"}
         <div class="im-search-results" data-items>
             <a n:foreach="$results as $found" class="im-search-msg" href="{$found->url}">
-                <img n:if="$found->saved" class="im-search-msg--ava" src="/assets/packages/static/openvk/img/im/saved_messages.png" alt="{_saved_messages}" loading="lazy" />
+                <img n:if="$found->saved" class="im-search-msg--ava" src="{($theme ?? null)?->getSavedMessagesAvatar() ?? '/assets/packages/static/openvk/img/im/saved_messages.png'}" alt="{_saved_messages}" loading="lazy" />
                 <img n:if="!$found->saved" class="im-search-msg--ava" src="{$found->peer->getAvatarURL('miniscule')}" alt="{$found->peer->getCanonicalName()}" loading="lazy" />
                 <div class="im-search-msg--body">
                     <div class="im-search-msg--head">
