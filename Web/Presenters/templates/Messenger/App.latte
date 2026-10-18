@@ -18,6 +18,9 @@
                 <span>{$correspondent->isFemale() ? tr("was_online_f") : tr("was_online_m")} {$correspondent->getOnline()}</span>
             {/if}
         </div>
+        <a class="im-search-btn" title="{_messenger_search_in_chat}">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>
+        </a>
         <a class="im-calendar-btn" title="{_messenger_go_to_date}">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2"/><path d="M16 2.5v4M8 2.5v4M3 10h18M7.5 14h2M11 14h2M14.5 14h2M7.5 17.5h2M11 17.5h2"/></svg>
         </a>
@@ -1491,7 +1494,8 @@
                 }
             };
 
-            const openPeerInfo = async () => {
+            // page — раздел, с которого открыть окно: "main" или "search"
+            const openPeerInfo = async (page = "main") => {
                 if(document.querySelector(".im-peer-dialog")) return;
 
                 let info;
@@ -1778,11 +1782,19 @@
                         return OpenVideo(video.dataset.id.split("_"));
                     }
                 });
+
+                if(page === "search") showSearch();
             };
 
             document.querySelector(".im-peer-info-btn")?.addEventListener("click", e => {
                 e.preventDefault();
                 openPeerInfo();
+            });
+
+            // лупа в хедере открывает то же окно сразу на поиске по сообщениям
+            document.querySelector(".im-search-btn")?.addEventListener("click", e => {
+                e.preventDefault();
+                openPeerInfo("search");
             });
 
             // переход к дате переписки; дни без сообщений в календаре погашены

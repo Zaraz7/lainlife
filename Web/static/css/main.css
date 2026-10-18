@@ -1727,17 +1727,20 @@ table.User {
 }
 
 .im-peer-info-btn,
+.im-search-btn,
 .im-calendar-btn {
     display: flex;
     cursor: pointer;
     opacity: .85;
 }
 
+.im-search-btn,
 .im-calendar-btn {
     margin-right: 8px;
 }
 
 .im-peer-info-btn:hover,
+.im-search-btn:hover,
 .im-calendar-btn:hover {
     opacity: 1;
 }
