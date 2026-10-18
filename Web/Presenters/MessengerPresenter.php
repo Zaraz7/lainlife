@@ -684,8 +684,14 @@ final class MessengerPresenter extends OpenVKPresenter
                 "length" => $item->getFormattedLength(),
             ];
         } elseif ($item instanceof Audio) {
+            // плеер темы, если она переопределяет шаблоны
+            $player = ($this->template->_templatePath ?? null) . "/Audio/player.latte";
+            if (!is_file($player)) {
+                $player = dirname(__FILE__) . "/templates/Audio/player.latte";
+            }
+
             return [
-                "html" => $this->getTemplatingEngine()->renderToString(dirname(__FILE__) . "/templates/Audio/player.latte", [
+                "html" => $this->getTemplatingEngine()->renderToString($player, [
                     "audio"       => $item,
                     "thisUser"    => $this->user->identity,
                     "hideButtons" => false,
@@ -751,7 +757,7 @@ final class MessengerPresenter extends OpenVKPresenter
     }
 
     // вкладки вложений в поиске по всем чатам, в порядке показа
-    private const SEARCH_MEDIA = ["photo", "video", "gif", "audio", "doc"];
+    private const SEARCH_MEDIA = ["photo", "video", "audio", "gif", "doc"];
 
     public function renderSearch(): void
     {
