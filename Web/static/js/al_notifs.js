@@ -72,6 +72,15 @@ function isViewingChatWith(senderId) {
     return parseInt(sel, 10) === parseInt(senderId, 10);
 }
 
+// чат с новым сообщением поднимается сразу под закреплённые; сами закреплённые остаются на своих местах
+function moveConversationUp(list, entry, pinnedSelector) {
+    if (entry.matches(pinnedSelector)) return;
+
+    const pinned = list.querySelectorAll(pinnedSelector);
+    const lastPinned = pinned[pinned.length - 1];
+    lastPinned ? lastPinned.after(entry) : list.prepend(entry);
+}
+
 function updateConversationListPreview(notif) {
     if (!notif || !notif.url) return;
 
@@ -89,7 +98,7 @@ function updateConversationListPreview(notif) {
         return null;
     };
 
-    const baseList = document.querySelector('.crp-list');
+    const baseList = document.querySelector('.im-dialogs .crp-list');
     if (baseList) {
         const entry = findByUrl(baseList, '.crp-entry');
         if (!entry) return;
@@ -105,18 +114,12 @@ function updateConversationListPreview(notif) {
         const msgBlock = entry.querySelector('.crp-entry--message');
         if (msgBlock) msgBlock.classList.add('unread');
 
-        // закреплённые чаты остаются сверху
-        const pinned = baseList.querySelectorAll('.crp-entry.pinned');
-        const lastPinned = pinned[pinned.length - 1];
-        if (entry.classList.contains('pinned') || !lastPinned) {
-            baseList.prepend(entry);
-        } else if (lastPinned !== entry) {
-            lastPinned.after(entry);
-        }
+        moveConversationUp(baseList, entry, '.crp-entry.pinned');
         return;
     }
 
-    const vkList = document.querySelector('.im-page--dcontent');
+    // список чатов, а не результаты поиска, которые в vkify16 стоят выше него
+    const vkList = document.querySelector('.im-dialogs--body .im-page--dcontent');
     if (vkList) {
         const entry = findByUrl(vkList, '.nim-dialog');
         if (!entry) return;
@@ -133,7 +136,7 @@ function updateConversationListPreview(notif) {
         }
         entry.classList.add('nim-dialog--unread');
 
-        vkList.prepend(entry);
+        moveConversationUp(vkList, entry, '.nim-dialog.nim-dialog_pinned');
         return;
     }
 }
