@@ -1127,14 +1127,35 @@ u(document).on('click', '.audioEntry .playerButton > .playIcon', async (e) => {
             })
         })
     } else if(!window.player.hasTrackWithId(id) && window.player.isAtAudiosPage()) {
-        window.player.__renewContext()
-        await window.player.loadContext(window.__current_page_audio_context.page ?? 1)
+        if (window.__current_page_audio_context) {
+            window.player.__renewContext()
+            await window.player.loadContext(window.__current_page_audio_context?.page ?? 1)
+        }
         if(!isNaN(parseInt(location.hash.replace('#', '')))) {
             const adp = parseInt(location.hash.replace('#', ''))
             await window.player.loadContext(adp)
-        } else if((new URL(location.href)).searchParams.p) {
-            const adp = (new URL(location.href)).searchParams.p
+        } else if((new URL(location.href)).searchParams.get('p')) {
+            const adp = (new URL(location.href)).searchParams.get('p')
             await window.player.loadContext(adp)
+        }
+
+        if (!window.player.hasTrackWithId(id)) {
+            u('.audiosContainer .audioEmbed, .audios_padding .audioEmbed').nodes.forEach(el => {
+                const tempAudio = u(el)
+                const trackId = Number(tempAudio.attr('data-realid'))
+                if (!window.player.hasTrackWithId(trackId)) {
+                    const name = tempAudio.attr('data-name').split(' — ')
+                    window.player.appendTrack({
+                        'id': trackId,
+                        'available': true,
+                        'keys': JSON.parse(tempAudio.attr('data-keys')),
+                        'length': Number(tempAudio.attr('data-length')),
+                        'url': tempAudio.attr('data-url'),
+                        'name': name.slice(1).join(' — '),
+                        'performer': name[0]
+                    })
+                }
+            })
         }
     }
 
